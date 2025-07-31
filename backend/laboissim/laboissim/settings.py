@@ -101,8 +101,8 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [        
     "http://localhost:3000",            # for local frontend (React, Next.js)
     "http://127.0.0.1:3000",            # optional alternative to localhost
-    "https://laboissim.vercel.app/",     # your Vercel frontend domain
-    "https://laboissim.onrender.com/",
+    "https://laboissim.vercel.app",     # your Vercel frontend domain
+    "https://laboissim.onrender.com",
     ]
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = False
