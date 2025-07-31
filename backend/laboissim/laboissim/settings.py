@@ -148,9 +148,7 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    "https://laboissim.vercel.app/",
-    "http://localhost:3000",
-]
+"https://laboissim.vercel.app/"]
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = False
 AUTHENTICATION_BACKENDS = [
