@@ -1,10 +1,11 @@
-﻿Django>=4.2.0,<5.0.0
+Django>=4.2.0,<5.0.0
 djangorestframework>=3.14.0
-djangorestframework-simplejwt>=5.2.2  # Add this line
+djangorestframework-simplejwt>=5.2.2
 gunicorn>=21.2.0
 python-dotenv>=1.0.0
 psycopg2-binary>=2.9.9
 Pillow>=10.0.0
 django-cors-headers>=4.3.0
 django-environ>=0.11.2
-social-auth-app-django>=5.0.0  # Add this line
+social-auth-app-django>=5.0.0
+mysqlclient>=2.2.0  # Add this line
