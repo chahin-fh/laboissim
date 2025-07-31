@@ -86,11 +86,11 @@ WSGI_APPLICATION = 'laboissim.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
-        'NAME': 'if0_39603410_djangotry',  # The name of your MySQL database
-        'USER': 'if0_39603410',    # The username to connect to MySQL
-        'PASSWORD': '1enm7ZXSr5', # The password for the MySQL user
-        'HOST': 'sql110.infinityfree.com',        # The host where MySQL is running (e.g., 'localhost' or an IP address)
-        'PORT': '3306', 
+        'NAME': 'defaultdb',  # The name of your MySQL database
+        'USER': 'avnadmin',    # The username to connect to MySQL
+        'PASSWORD': 'AVNS_Zwlv0fuxpRhOIL6HhQH', # The password for the MySQL user
+        'HOST': 'mysql-3c3b5822-shynbig-4a67.b.aivencloud.com',        # The host where MySQL is running (e.g., 'localhost' or an IP address)
+        'PORT': '17324', 
     }
 }
 
