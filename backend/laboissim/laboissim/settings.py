@@ -95,7 +95,7 @@ DATABASES = {
 }
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000" , "https://laboissim.vercel.app/"]
+CORS_ALLOWED_ORIGINS = ["https://laboissim.vercel.app/"]
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = False
 # Password validation
@@ -145,11 +145,6 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ),
 }
-
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = []
-SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE = False
 AUTHENTICATION_BACKENDS = [
     'laboissim.auth_backend.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
