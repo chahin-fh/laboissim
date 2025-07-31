@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-x3qgep_m9=@a8ojg=k1#*4@nsl7^@ezqi9q#=pb508s5g#gopu
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['https://laboissim.vercel.app/']
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '1082568836785-88f1lu6jqanga0pn9aialn6g0c3qjh18.apps.googleusercontent.com'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
@@ -95,7 +95,7 @@ DATABASES = {
 }
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000" , "https://laboissim.vercel.app/"]
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = False
 # Password validation
@@ -148,6 +148,7 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
+    "https://laboissim.vercel.app/",
     "http://localhost:3000",
 ]
 SESSION_COOKIE_SAMESITE = "Lax"
