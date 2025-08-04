@@ -35,7 +35,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '1082568836785-88f1lu6jqanga0pn9aialn6g0c3qjh18.
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['email', 'profile']
 LOGIN_URL = '/auth/login/google-oauth2/'
-LOGIN_REDIRECT_URL = 'http://localhost:3000/login/google-callback'
+LOGIN_REDIRECT_URL = 'https://laboissim.vercel.app/login/google-callback'
 LOGOUT_URL = '/logout/'
 # Application definition
 
