@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'social_django',
-    'laboissim',
+    'laboissim.laboissim',
 ]
 
 MIDDLEWARE = [
@@ -65,7 +65,7 @@ MIDDLEWARE = [
     'social_django.middleware.SocialAuthExceptionMiddleware',
 ]
 
-ROOT_URLCONF = 'laboissim.urls'
+ROOT_URLCONF = 'laboissim.laboissim.urls'
 
 TEMPLATES = [
     {
