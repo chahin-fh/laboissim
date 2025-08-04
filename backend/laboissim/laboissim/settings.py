@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'social_django',
-    'laboissim',
+    'laboissim.laboissim',
 ]
 
 MIDDLEWARE = [
@@ -154,7 +154,7 @@ REST_FRAMEWORK = {
     ),
 }
 AUTHENTICATION_BACKENDS = [
-    'laboissim.auth_backend.EmailBackend',
+    '.laboissim.laboissim.auth_backend.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
     'social_core.backends.google.GoogleOAuth2',
 ]
