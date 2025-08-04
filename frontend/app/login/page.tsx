@@ -153,7 +153,7 @@ export default function LoginPage() {
 
             {/* Google Login Button */}
             <div className="mt-6 flex flex-col items-center">
-              <a href="http://localhost:8000/auth/login/google-oauth2/" className="w-full">
+              <a href="https://laboissim.onrender.com/auth/login/google-oauth2/" className="w-full">
                 <Button
                   type="button"
                   variant="outline"
