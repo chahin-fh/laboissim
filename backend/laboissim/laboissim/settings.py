@@ -29,8 +29,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = [    "laboissim.onrender.com",
     "laboissim.vercel.app",  # If you're also using this domain
-    "localhost",             # For local development
-    "127.0.0.1",]
+    ]
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '1082568836785-88f1lu6jqanga0pn9aialn6g0c3qjh18.apps.googleusercontent.com'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
@@ -101,9 +100,7 @@ DATABASES = {
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [        
-    "http://localhost:3000",            # for local frontend (React, Next.js)
-    "http://127.0.0.1:3000",            # optional alternative to localhost
-    "https://laboissim.vercel.app",     # your Vercel frontend domain
+    "https://laboissim.vercel.app",
     "https://laboissim.onrender.com",
     ]
 SESSION_COOKIE_SAMESITE = "Lax"
