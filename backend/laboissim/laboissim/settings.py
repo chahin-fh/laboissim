@@ -64,7 +64,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'laboissim.urls'
+ROOT_URLCONF = 'laboissim.laboissim.urls'
 
 TEMPLATES = [
     {
