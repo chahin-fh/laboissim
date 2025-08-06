@@ -93,11 +93,11 @@ WSGI_APPLICATION = 'laboissim.laboissim.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT', '3306'),
+        'NAME': "if0_39603410_djangotry",
+        'USER': "if0_39603410",
+        'PASSWORD': "1enm7ZXSr5",
+        'HOST': "sql110.infinityfree.com",
+        'PORT': "3306",
     }
 }
 
