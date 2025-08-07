@@ -7,6 +7,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.http import HttpResponseRedirect
 from django.contrib.auth import get_user_model
 import json
+from social_django.views import complete as social_complete
+from django.shortcuts import redirect
+from django.views import View
 
 User = get_user_model()
 
@@ -34,20 +37,12 @@ class SiteContentView(APIView):
             'content': 'This is the main content of the site.'
         })
 
-from social_django.views import complete as social_complete
-from django.shortcuts import redirect
-
-class GoogleOAuthCompleteView(APIView):
-    def get(self, request):
-        """Handle Google OAuth completion and redirect to frontend with user data"""
-        print(f"GoogleOAuthCompleteView called with request: {request}")
-        print(f"User authenticated: {request.user.is_authenticated}")
-        print(f"User: {request.user}")
-        
+class GoogleOAuthCompleteView(View):
+    def get(self, request, *args, **kwargs):
+        """Custom Google OAuth completion that redirects to frontend with JWT"""
         try:
             # Let social_django handle the OAuth completion
             response = social_complete(request, backend='google-oauth2')
-            print(f"Social complete response: {response}")
             
             # Check if the user is now authenticated
             if request.user.is_authenticated:

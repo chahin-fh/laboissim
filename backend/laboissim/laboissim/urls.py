@@ -28,11 +28,10 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/email/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair_email'),
-    # Override the Google OAuth completion URL
-    path('complete/google-oauth2/', GoogleOAuthCompleteView.as_view(), name='google_oauth_complete'),
+    # Override the social_django completion URL
+    path('auth/complete/google-oauth2/', GoogleOAuthCompleteView.as_view(), name='social:complete'),
     path('auth/', include('social_django.urls', namespace='social')),
     path('auth/google/jwt/', GoogleLoginJWTView.as_view(), name='google_login_jwt'),
-    path('auth/google/complete/', GoogleOAuthCompleteView.as_view(), name='google_oauth_complete'),
     path('api/user/', CurrentUserView.as_view(), name='current-user'),
     path('api/site-content/', SiteContentView.as_view(), name='site-content'),
 ]
