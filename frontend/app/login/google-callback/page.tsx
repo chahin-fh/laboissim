@@ -9,10 +9,17 @@ export default function GoogleCallbackPage() {
   const { setUser } = useAuth();
 
   useEffect(() => {
+    console.log("Google callback page loaded");
+    console.log("Search params:", Object.fromEntries(searchParams.entries()));
+    
     // Check if we have user data from URL parameters (new flow)
     const userParam = searchParams.get('user');
     const accessParam = searchParams.get('access');
     const refreshParam = searchParams.get('refresh');
+
+    console.log("User param:", userParam);
+    console.log("Access param:", accessParam);
+    console.log("Refresh param:", refreshParam);
 
     if (userParam && accessParam && refreshParam) {
       try {

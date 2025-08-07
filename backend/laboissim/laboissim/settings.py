@@ -37,8 +37,8 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['email', 'profile']
 LOGIN_URL = '/auth/login/google-oauth2/'
 LOGOUT_URL = '/logout/'
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/auth/google/complete/'
-LOGIN_REDIRECT_URL = '/auth/google/complete/'
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/complete/google-oauth2/'
+LOGIN_REDIRECT_URL = '/complete/google-oauth2/'
 SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'https://laboissim.onrender.com/complete/google-oauth2/'
 # Application definition
 

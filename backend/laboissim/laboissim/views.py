@@ -34,33 +34,49 @@ class SiteContentView(APIView):
             'content': 'This is the main content of the site.'
         })
 
+from social_django.views import complete as social_complete
+from django.shortcuts import redirect
+
 class GoogleOAuthCompleteView(APIView):
     def get(self, request):
         """Handle Google OAuth completion and redirect to frontend with user data"""
-        if request.user.is_authenticated:
-            user = request.user
-            refresh = RefreshToken.for_user(user)
+        print(f"GoogleOAuthCompleteView called with request: {request}")
+        print(f"User authenticated: {request.user.is_authenticated}")
+        print(f"User: {request.user}")
+        
+        try:
+            # Let social_django handle the OAuth completion
+            response = social_complete(request, backend='google-oauth2')
+            print(f"Social complete response: {response}")
             
-            # Create user data for frontend
-            user_data = {
-                'id': user.id,
-                'email': user.email,
-                'username': user.username,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'is_staff': user.is_staff,
-                'is_superuser': user.is_superuser,
-            }
-            
-            # Encode user data and tokens for URL parameters
-            import urllib.parse
-            user_data_encoded = urllib.parse.quote(json.dumps(user_data))
-            access_token_encoded = urllib.parse.quote(str(refresh.access_token))
-            refresh_token_encoded = urllib.parse.quote(str(refresh))
-            
-            # Redirect to frontend with user data
-            redirect_url = f"https://laboissim.vercel.app/login/google-callback?user={user_data_encoded}&access={access_token_encoded}&refresh={refresh_token_encoded}"
-            return HttpResponseRedirect(redirect_url)
-        else:
-            # If not authenticated, redirect to login with error
-            return HttpResponseRedirect("https://laboissim.vercel.app/login?error=google_auth_failed") 
+            # Check if the user is now authenticated
+            if request.user.is_authenticated:
+                user = request.user
+                refresh = RefreshToken.for_user(user)
+                
+                # Create user data for frontend
+                user_data = {
+                    'id': user.id,
+                    'email': user.email,
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'is_staff': user.is_staff,
+                    'is_superuser': user.is_superuser,
+                }
+                
+                # Encode user data and tokens for URL parameters
+                import urllib.parse
+                user_data_encoded = urllib.parse.quote(json.dumps(user_data))
+                access_token_encoded = urllib.parse.quote(str(refresh.access_token))
+                refresh_token_encoded = urllib.parse.quote(str(refresh))
+                
+                # Redirect to frontend with user data
+                redirect_url = f"https://laboissim.vercel.app/login/google-callback?user={user_data_encoded}&access={access_token_encoded}&refresh={refresh_token_encoded}"
+                return redirect(redirect_url)
+            else:
+                # If not authenticated, redirect to login with error
+                return redirect("https://laboissim.vercel.app/login?error=google_auth_failed")
+        except Exception as e:
+            print(f"Google OAuth completion error: {e}")
+            return redirect("https://laboissim.vercel.app/login?error=google_auth_failed") 
