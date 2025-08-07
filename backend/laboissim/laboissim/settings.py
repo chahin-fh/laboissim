@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'social_django',
-    'laboissim.',
+    'laboissim',
 ]
 
 MIDDLEWARE = [
@@ -65,7 +65,7 @@ MIDDLEWARE = [
     'social_django.middleware.SocialAuthExceptionMiddleware',
 ]
 
-ROOT_URLCONF = 'laboissim..urls'
+ROOT_URLCONF = 'laboissim.urls'
 
 TEMPLATES = [
     {
@@ -157,7 +157,7 @@ REST_FRAMEWORK = {
     ),
 }
 AUTHENTICATION_BACKENDS = [
-    'laboissim..auth_backend.EmailBackend',
+    'laboissim.auth_backend.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
     'social_core.backends.google.GoogleOAuth2',
 ]
@@ -165,12 +165,12 @@ AUTHENTICATION_BACKENDS = [
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
-    'laboissim..social_pipeline.prevent_duplicate_email',  # Custom step to prevent duplicate emails
+    'laboissim.social_pipeline.prevent_duplicate_email',  # Custom step to prevent duplicate emails
     'social_core.pipeline.social_auth.auth_allowed',
     'social_core.pipeline.social_auth.social_user',
     'social_core.pipeline.user.get_username',
     'social_core.pipeline.user.create_user',
-    'laboissim..social_pipeline.save_profile',  # Custom step to save extra info
+    'laboissim.social_pipeline.save_profile',  # Custom step to save extra info
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
