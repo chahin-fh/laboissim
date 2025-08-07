@@ -34,11 +34,12 @@ ALLOWED_HOSTS = [    "laboissim.onrender.com",
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '1082568836785-88f1lu6jqanga0pn9aialn6g0c3qjh18.apps.googleusercontent.com'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['email', 'profile']
-LOGIN_URL = 'auth/login/google-oauth2/'
+LOGIN_URL = '/auth/login/google-oauth2/'
+LOGOUT_URL = '/logout/'
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'https://laboissim.vercel.app/login/google-callback'
 LOGIN_REDIRECT_URL = 'https://laboissim.vercel.app/login/google-callback'
-LOGOUT_URL = 'logout/'
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'https://laboissim.onrender.com/complete/google-oauth2/'
 # Application definition
 
 INSTALLED_APPS = [
@@ -163,6 +164,12 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'social_core.backends.google.GoogleOAuth2',
 ]
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = ['laboissim.onrender.com', 'laboissim.vercel.app']
+SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
+    'access_type': 'offline',
+    'prompt': 'consent'
+}
 
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
