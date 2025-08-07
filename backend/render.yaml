@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: laboissim-backend
+    runtime: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd laboissim && python manage.py migrate && python manage.py collectstatic --no-input && gunicorn laboissim.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: DATABASE_URL
+        sync: false
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: false
+      - key: ALLOWED_HOSTS
+        value: "laboissim.onrender.com"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://laboissim.vercel.app"
+    autoDeploy: true
