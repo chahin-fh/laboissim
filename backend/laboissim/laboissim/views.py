@@ -1,45 +1,66 @@
-from django.contrib.auth.models import User
+from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from rest_framework import serializers, status
-from .models import SiteContent
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth.models import User
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.http import HttpResponseRedirect
+from django.contrib.auth import get_user_model
+import json
 
-# Serializer for the User model
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser']
+User = get_user_model()
 
-# Serializer for SiteContent
-class SiteContentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SiteContent
-        fields = '__all__'
-
-# API view to return and update the singleton SiteContent
-class SiteContentView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        content, _ = SiteContent.objects.get_or_create(id=1)
-        serializer = SiteContentSerializer(content)
-        return Response(serializer.data)
-
-    def put(self, request):
-        if not request.user.is_staff:
-            return Response({'detail': 'Not authorized.'}, status=status.HTTP_403_FORBIDDEN)
-        content, _ = SiteContent.objects.get_or_create(id=1)
-        serializer = SiteContentSerializer(content, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# API view to return the current user's data
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data) 
+        user = request.user
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+        })
+
+class SiteContentView(APIView):
+    def get(self, request):
+        # This would typically fetch content from your database
+        return Response({
+            'title': 'Laboissim',
+            'description': 'Welcome to Laboissim',
+            'content': 'This is the main content of the site.'
+        })
+
+class GoogleOAuthCompleteView(APIView):
+    def get(self, request):
+        """Handle Google OAuth completion and redirect to frontend with user data"""
+        if request.user.is_authenticated:
+            user = request.user
+            refresh = RefreshToken.for_user(user)
+            
+            # Create user data for frontend
+            user_data = {
+                'id': user.id,
+                'email': user.email,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+            }
+            
+            # Encode user data and tokens for URL parameters
+            import urllib.parse
+            user_data_encoded = urllib.parse.quote(json.dumps(user_data))
+            access_token_encoded = urllib.parse.quote(str(refresh.access_token))
+            refresh_token_encoded = urllib.parse.quote(str(refresh))
+            
+            # Redirect to frontend with user data
+            redirect_url = f"https://laboissim.vercel.app/login/google-callback?user={user_data_encoded}&access={access_token_encoded}&refresh={refresh_token_encoded}"
+            return HttpResponseRedirect(redirect_url)
+        else:
+            # If not authenticated, redirect to login with error
+            return HttpResponseRedirect("https://laboissim.vercel.app/login?error=google_auth_failed") 

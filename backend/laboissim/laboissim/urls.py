@@ -21,7 +21,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from .email_token_view import EmailTokenObtainPairView, GoogleLoginJWTView
-from .views import CurrentUserView, SiteContentView
+from .views import CurrentUserView, SiteContentView, GoogleOAuthCompleteView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/token/email/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair_email'),
     path('auth/', include('social_django.urls', namespace='social')),
     path('auth/google/jwt/', GoogleLoginJWTView.as_view(), name='google_login_jwt'),
+    path('auth/google/complete/', GoogleOAuthCompleteView.as_view(), name='google_oauth_complete'),
     path('api/user/', CurrentUserView.as_view(), name='current-user'),
     path('api/site-content/', SiteContentView.as_view(), name='site-content'),
 ]
