@@ -3,6 +3,9 @@ import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 
+// Disable static generation for this page
+export const dynamic = 'force-dynamic';
+
 function GoogleCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
