@@ -16,22 +16,32 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from rest_framework.routers import DefaultRouter
 from .email_token_view import EmailTokenObtainPairView, GoogleLoginJWTView
-from .views import CurrentUserView, SiteContentView, GoogleOAuthCompleteView
+from .views import CurrentUserView, SiteContentView
+from .file_views import FileViewSet
+
+router = DefaultRouter(trailing_slash=False)
+router.register(r'files', FileViewSet, basename='file')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/email/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair_email'),
-    # Override the social_django completion URL
-    path('auth/complete/google-oauth2/', GoogleOAuthCompleteView.as_view(), name='social:complete'),
+    path('api/', include(router.urls)),
     path('auth/', include('social_django.urls', namespace='social')),
     path('auth/google/jwt/', GoogleLoginJWTView.as_view(), name='google_login_jwt'),
     path('api/user/', CurrentUserView.as_view(), name='current-user'),
     path('api/site-content/', SiteContentView.as_view(), name='site-content'),
 ]
+
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
