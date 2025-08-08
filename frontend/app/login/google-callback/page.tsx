@@ -1,12 +1,12 @@
 "use client";
-import { useEffect, Suspense } from "react";
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 
 // Disable static generation for this page
 export const dynamic = 'force-dynamic';
 
-function GoogleCallbackContent() {
+export default function GoogleCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setUser } = useAuth();
@@ -104,12 +104,4 @@ function GoogleCallbackContent() {
   }, [router, setUser, searchParams]);
 
   return <div>Connexion en cours...</div>;
-}
-
-export default function GoogleCallbackPage() {
-  return (
-    <Suspense fallback={<div>Chargement...</div>}>
-      <GoogleCallbackContent />
-    </Suspense>
-  );
 } 
