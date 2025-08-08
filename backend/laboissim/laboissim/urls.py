@@ -25,10 +25,7 @@ from rest_framework_simplejwt.views import (
 from rest_framework.routers import DefaultRouter
 from .email_token_view import EmailTokenObtainPairView, GoogleLoginJWTView
 from .views import CurrentUserView, SiteContentView
-from .file_views import FileViewSet
 
-router = DefaultRouter(trailing_slash=False)
-router.register(r'files', FileViewSet, basename='file')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
