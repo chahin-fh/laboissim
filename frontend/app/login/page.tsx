@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,15 +22,6 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const { login } = useAuth()
   const router = useRouter()
-  const searchParams = useSearchParams()
-
-  // Handle error parameters from URL
-  useEffect(() => {
-    const errorParam = searchParams.get('error')
-    if (errorParam === 'google') {
-      setError("Erreur lors de la connexion avec Google. Veuillez réessayer.")
-    }
-  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,20 +50,10 @@ export default function LoginPage() {
         transition={{ duration: 0.6 }}
         className="w-full max-w-md"
       >
-        {/* Back Button */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6"
-        >
-          <Link href="/">
-            <Button variant="ghost" className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour à l'accueil
-            </Button>
-          </Link>
-        </motion.div>
+        <br />
+        <br />
+        <br />
+        
 
         <Card className="card-professional border-0 shadow-xl">
           <CardHeader className="text-center pb-8">

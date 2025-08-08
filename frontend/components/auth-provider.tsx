@@ -188,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
     if (token) {
       // Try to fetch user profile from backend
-      fetch("http://localhost:8000/api/user/", {
+      fetch("https://laboissim.onrender.com/api/user/", {
         headers: {
           "Authorization": `Bearer ${token}`,
         },
@@ -234,7 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch("http://localhost:8000/api/token/email/", {
+      const response = await fetch("https://laboissim.onrender.com/api/token/email/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -247,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("token", data.access); // Store JWT token
 
         // Fetch user data from backend
-        const userRes = await fetch("http://localhost:8000/api/user/", {
+        const userRes = await fetch("https://laboissim.onrender.com/api/user/", {
           headers: {
             "Authorization": `Bearer ${data.access}`,
           },
