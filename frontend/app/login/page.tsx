@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -22,6 +22,16 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const { login } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    // Check for Google OAuth error
+    const searchParams = new URLSearchParams(window.location.search)
+    const googleError = searchParams.get('error')
+    const errorMessage = searchParams.get('message')
+    if (googleError === 'google') {
+      setError(errorMessage || 'Une erreur est survenue lors de la connexion avec Google')
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -143,7 +153,7 @@ export default function LoginPage() {
 
             {/* Google Login Button */}
             <div className="mt-6 flex flex-col items-center">
-              <a href="https://laboissim.onrender.com/auth/login/google-oauth2/" className="w-full">
+              <a href="https://laboissim.onrender.com/auth/login/google-oauth2/?prompt=select_account&state=google-auth" className="w-full">
                 <Button
                   type="button"
                   variant="outline"

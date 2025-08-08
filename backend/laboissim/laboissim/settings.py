@@ -31,9 +31,13 @@ ALLOWED_HOSTS = [    "laboissim.onrender.com",
     "laboissim.vercel.app",  # If you're also using this domain
     ]
 
+# Google OAuth Settings
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '1082568836785-88f1lu6jqanga0pn9aialn6g0c3qjh18.apps.googleusercontent.com'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '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'
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['email', 'profile']
+SOCIAL_AUTH_RAISE_EXCEPTIONS = True
+RAISE_EXCEPTIONS = True
+SOCIAL_AUTH_JSONFIELD_ENABLED = True
 LOGIN_URL = '/auth/login/google-oauth2/'
 LOGOUT_URL = '/logout/'
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
@@ -108,8 +112,13 @@ CORS_ALLOWED_ORIGINS = [
     "https://laboissim.vercel.app",
     "https://laboissim.onrender.com",
     ]
-SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+CSRF_TRUSTED_ORIGINS = [
+    "https://laboissim.vercel.app",
+    "https://laboissim.onrender.com",
+]
+CSRF_COOKIE_SECURE = True
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 

@@ -10,9 +10,17 @@ export default function GoogleCallbackPage() {
   useEffect(() => {
     fetch("https://laboissim.onrender.com/auth/google/jwt/", {
       credentials: "include",
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
     })
       .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to get JWT");
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error('JWT Error:', errorData);
+          throw new Error(errorData.detail || "Failed to get JWT");
+        }
         const data = await res.json();
         localStorage.clear(); // Clear all localStorage
         localStorage.setItem("access", data.access);
@@ -41,8 +49,9 @@ export default function GoogleCallbackPage() {
         localStorage.setItem("user", JSON.stringify(user));
         router.push("/dashboard");
       })
-      .catch(() => {
-        router.push("/login?error=google");
+      .catch((error) => {
+        console.error('Authentication error:', error);
+        router.push("/login?error=google&message=" + encodeURIComponent(error.message));
       });
   }, [router, setUser]);
 
