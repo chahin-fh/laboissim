@@ -24,7 +24,7 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework.routers import DefaultRouter
 from .email_token_view import EmailTokenObtainPairView, GoogleLoginJWTView
-from .views import GoogleOAuthCompleteView, CustomGoogleOAuthView, SimpleGoogleOAuthView, InterceptSocialAuthView
+from .views import GoogleOAuthCompleteView, CustomGoogleOAuthView, SimpleGoogleOAuthView
 from .views import CurrentUserView, SiteContentView
 
 
@@ -37,8 +37,8 @@ urlpatterns = [
     path('auth/google/simple/', SimpleGoogleOAuthView.as_view(), name='google_oauth_simple'),
     path('auth/google/custom/', GoogleOAuthCompleteView.as_view(), name='google_oauth_custom'),
     path('auth/google/custom-complete/', CustomGoogleOAuthView.as_view(), name='google_oauth_custom_complete'),
-    # Intercept social auth URLs
-    path('auth/complete/google-oauth2/', InterceptSocialAuthView.as_view(), name='intercept_social_auth'),
+    # Use SimpleGoogleOAuthView for the completion endpoint
+    path('auth/complete/google-oauth2/', SimpleGoogleOAuthView.as_view(), name='google_oauth_complete'),
     path('auth/google/jwt/', GoogleLoginJWTView.as_view(), name='google_login_jwt'),
     path('api/user/', CurrentUserView.as_view(), name='current-user'),
     path('api/site-content/', SiteContentView.as_view(), name='site-content'),

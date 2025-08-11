@@ -178,11 +178,6 @@ AUTHENTICATION_BACKENDS = [
     'social_core.backends.google.GoogleOAuth2',
 ]
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
-    'access_type': 'offline',
-    'prompt': 'consent'
-}
-
 # Social Auth Security Settings
 SOCIAL_AUTH_SANITIZE_REDIRECTS = False
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
@@ -201,6 +196,11 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_EMAILS = []
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['username', 'email']
 SOCIAL_AUTH_IMMUTABLE_USER_FIELDS = ['username', 'email']
 
+# Google OAuth specific settings
+SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
+    'access_type': 'offline',
+    'prompt': 'consent'
+}
 
 
 SOCIAL_AUTH_PIPELINE = (
