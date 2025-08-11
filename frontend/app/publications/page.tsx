@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,11 +8,40 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Search, BookOpen, FileText, Users, Award, ExternalLink, Download, Eye } from "lucide-react"
+import { getPublications } from "@/lib/publication-service"
+
+interface PublicationResponse {
+  id: string;
+  title: string;
+  abstract: string;
+  posted_at: string;
+  posted_by?: {
+    id: string;
+    name: string;
+  };
+}
 
 export default function PublicationsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedType, setSelectedType] = useState("all")
   const [selectedYear, setSelectedYear] = useState("all")
+  const [dynamicPublications, setDynamicPublications] = useState<PublicationResponse[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchPublications = async () => {
+      try {
+        const publications = await getPublications()
+        setDynamicPublications(publications)
+      } catch (error) {
+        console.error('Error fetching publications:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPublications()
+  }, [])
 
   const fadeInUp = {
     initial: { opacity: 0, y: 60 },
@@ -28,130 +57,28 @@ export default function PublicationsPage() {
     },
   }
 
-  const publications = [
-    {
-      id: "pub-1",
-      title: "Towards Transparent AI: A Framework for Explainable Machine Learning Models",
-      authors: ["Martin J.", "Moreau E.", "Garcia C."],
-      journal: "Journal of Artificial Intelligence Research",
-      year: 2023,
-      type: "Article",
-      abstract:
-        "This paper presents a novel framework for developing explainable machine learning models that maintain high performance while providing transparent decision-making processes. We introduce new metrics for quantifying explainability and demonstrate their effectiveness across various domains.",
-      keywords: ["Explainable AI", "Transparency", "Machine Learning", "Ethics"],
-      doi: "10.1234/jair.2023.123",
-      url: "#",
-      citations: 24,
-      pdf: "#",
-    },
-    {
-      id: "pub-2",
-      title: "Genomic Biomarkers for Personalized Cancer Treatment",
-      authors: ["Dubois S.", "Chen L.", "Martin J."],
-      journal: "Nature Medicine",
-      year: 2023,
-      type: "Article",
-      abstract:
-        "We identify novel genomic biomarkers that predict response to targeted cancer therapies, enabling more effective personalized treatment strategies. Our findings demonstrate significant improvements in patient outcomes when treatment decisions are guided by these biomarkers.",
-      keywords: ["Genomics", "Cancer", "Personalized Medicine", "Biomarkers"],
-      doi: "10.1038/nm.2023.456",
-      url: "#",
-      citations: 37,
-      pdf: "#",
-    },
-    {
-      id: "pub-3",
-      title: "High-Efficiency Perovskite-Silicon Tandem Solar Cells",
-      authors: ["Leroy T.", "Chen L.", "Martin J."],
-      journal: "Nature Energy",
-      year: 2023,
-      type: "Article",
-      abstract:
-        "We report the development of perovskite-silicon tandem solar cells with record efficiency of 29.8%. The novel interface engineering approach presented in this work addresses stability issues while maintaining high performance, representing a significant step towards commercial viability.",
-      keywords: ["Solar Energy", "Perovskite", "Photovoltaics", "Renewable Energy"],
-      doi: "10.1038/nenergy.2023.789",
-      url: "#",
-      citations: 42,
-      pdf: "#",
-    },
-    {
-      id: "pub-4",
-      title: "Quantum Algorithms for Cryptanalysis: Beyond Shor's Algorithm",
-      authors: ["Garcia C.", "Martin J.", "Moreau E."],
-      journal: "Quantum Information Processing",
-      year: 2023,
-      type: "Article",
-      abstract:
-        "This paper introduces novel quantum algorithms that extend beyond Shor's algorithm for cryptanalysis. We analyze their theoretical performance against modern cryptographic systems and discuss implications for post-quantum cryptography.",
-      keywords: ["Quantum Computing", "Cryptography", "Algorithms", "Security"],
-      doi: "10.1007/qip.2023.101",
-      url: "#",
-      citations: 18,
-      pdf: "#",
-    },
-    {
-      id: "pub-5",
-      title: "Neuromorphic Computing: Bridging Neuroscience and Artificial Intelligence",
-      authors: ["Moreau E.", "Dubois S.", "Garcia C."],
-      journal: "Neuron",
-      year: 2023,
-      type: "Review",
-      abstract:
-        "This comprehensive review examines the intersection of neuroscience and artificial intelligence, focusing on neuromorphic computing architectures. We discuss recent advances, challenges, and future directions for brain-inspired computing systems.",
-      keywords: ["Neuromorphic Computing", "Neuroscience", "AI", "Brain-inspired Computing"],
-      doi: "10.1016/neuron.2023.202",
-      url: "#",
-      citations: 53,
-      pdf: "#",
-    },
-    {
-      id: "pub-6",
-      title: "Smart Nanomaterials for Targeted Drug Delivery",
-      authors: ["Chen L.", "Leroy T.", "Dubois S."],
-      journal: "Advanced Materials",
-      year: 2022,
-      type: "Article",
-      abstract:
-        "We present the synthesis and characterization of novel smart nanomaterials designed for targeted drug delivery. These materials respond to specific biological triggers, enabling precise spatial and temporal control of drug release with minimal side effects.",
-      keywords: ["Nanomaterials", "Drug Delivery", "Biomedicine", "Smart Materials"],
-      doi: "10.1002/adma.2022.303",
-      url: "#",
-      citations: 61,
-      pdf: "#",
-    },
-    {
-      id: "pub-7",
-      title: "Machine Learning Approaches for Treatment Response Prediction",
-      authors: ["Chen L.", "Dubois S.", "Moreau E."],
-      journal: "Science Translational Medicine",
-      year: 2022,
-      type: "Article",
-      abstract:
-        "This study develops and validates machine learning models that predict patient response to various treatments based on multi-omics data. Our approach achieves 87% accuracy in predicting treatment outcomes across multiple disease types.",
-      keywords: ["Machine Learning", "Precision Medicine", "Treatment Response", "Multi-omics"],
-      doi: "10.1126/scitranslmed.2022.404",
-      url: "#",
-      citations: 45,
-      pdf: "#",
-    },
-    {
-      id: "pub-8",
-      title: "Sustainable Materials for Next-Generation Photovoltaics",
-      authors: ["Chen L.", "Leroy T.", "Dubois S."],
-      journal: "Advanced Energy Materials",
-      year: 2022,
-      type: "Review",
-      abstract:
-        "This review examines sustainable materials for next-generation photovoltaic technologies, with emphasis on earth-abundant, non-toxic alternatives to conventional solar cell materials. We analyze performance metrics, scalability, and life-cycle assessments.",
-      keywords: ["Sustainable Materials", "Photovoltaics", "Green Energy", "Solar Cells"],
-      doi: "10.1002/aenm.2022.505",
-      url: "#",
-      citations: 72,
-      pdf: "#",
-    },
-  ]
+  // Transform dynamic publications to match the display format
+  const transformedDynamicPublications = dynamicPublications.map((pub) => ({
+    id: pub.id,
+    title: pub.title,
+    authors: [pub.posted_by?.name || "Utilisateur"],
+    journal: "Publication Équipe", // Since we don't have journal field anymore
+    year: new Date(pub.posted_at).getFullYear(),
+    type: "Article",
+    abstract: pub.abstract,
+    keywords: ["Recherche", "Équipe"], // Default keywords since we don't have this field
+    doi: `internal.${pub.id}`,
+    url: "#",
+    citations: 0, // Default since we don't track citations for internal publications
+    pdf: "#",
+  }))
 
-  const filteredPublications = publications.filter((pub) => {
+
+
+  // Combine dynamic and static publications
+  const allPublications = [...transformedDynamicPublications]
+
+  const filteredPublications = allPublications.filter((pub) => {
     const matchesSearch =
       pub.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pub.authors.join(" ").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -164,8 +91,19 @@ export default function PublicationsPage() {
     return matchesSearch && matchesType && matchesYear
   })
 
-  const publicationTypes = Array.from(new Set(publications.map((pub) => pub.type)))
-  const publicationYears = Array.from(new Set(publications.map((pub) => pub.year.toString())))
+  const publicationTypes = Array.from(new Set(allPublications.map((pub) => pub.type)))
+  const publicationYears = Array.from(new Set(allPublications.map((pub) => pub.year.toString())))
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-electric-50 to-violet-100 pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des publications...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-electric-50 to-violet-100 pt-20">
@@ -203,10 +141,10 @@ export default function PublicationsPage() {
           className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12"
         >
           {[
-            { icon: FileText, number: "150+", label: "Publications", color: "violet" },
-            { icon: Users, number: "25+", label: "Auteurs", color: "electric" },
+            { icon: FileText, number: allPublications.length.toString(), label: "Publications", color: "violet" },
+            { icon: Users, number: Array.from(new Set(allPublications.flatMap(p => p.authors))).length.toString(), label: "Auteurs", color: "electric" },
             { icon: Award, number: "12", label: "Prix", color: "violet" },
-            { icon: BookOpen, number: "10k+", label: "Citations", color: "electric" },
+            { icon: BookOpen, number: allPublications.reduce((total, pub) => total + pub.citations, 0).toString(), label: "Citations", color: "electric" },
           ].map((stat, index) => (
             <motion.div
               key={index}

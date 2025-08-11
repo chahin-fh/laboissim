@@ -188,7 +188,7 @@ export function useContentManager() {
       setLoading(true)
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
-        const res = await fetch("https://laboissim.onrender.com/api/site-content/", {
+        const res = await fetch("http://localhost:8000/api/site-content/", {
           headers: token ? { "Authorization": `Bearer ${token}` } : {},
         })
         if (res.ok) {
@@ -253,7 +253,7 @@ export function useContentManager() {
     }
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
-      await fetch("https://laboissim.onrender.com/api/site-content/", {
+      await fetch("http://localhost:8000/api/site-content/", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { uploadFile, getUserFiles, deleteFile, formatFileSize } from "@/lib/file-service"
+import { createPublication, getPublications, deletePublication } from "@/lib/publication-service"
+import { RecentDocuments } from "@/components/recent-documents"
+import { RecentPublications } from "@/components/recent-publications"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -31,6 +35,30 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 
+interface FileResponse {
+  id: string;
+  name: string;
+  file: string;
+  uploaded_at: string;
+  file_type: string;
+  size: number;
+  uploaded_by?: {
+    id: string;
+    name: string;
+  };
+}
+
+interface PublicationResponse {
+  id: string;
+  title: string;
+  abstract: string;
+  posted_at: string;
+  posted_by?: {
+    id: string;
+    name: string;
+  };
+}
+
 export default function DashboardPage() {
   const {
     user,
@@ -50,12 +78,29 @@ export default function DashboardPage() {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const [replyToMessage, setReplyToMessage] = useState<string | null>(null)
   const [showFloatingMessages, setShowFloatingMessages] = useState(false)
+  const [showDocuments, setShowDocuments] = useState(false)
+  const [showPublications, setShowPublications] = useState(false)
+  const [userFiles, setUserFiles] = useState<FileResponse[]>([])
+  const [publications, setPublications] = useState<PublicationResponse[]>([])
+  const [publicationForm, setPublicationForm] = useState({ title: "", abstract: "" })
 
   useEffect(() => {
     if (!user && !loading) {
       router.push("/login")
     }
   }, [user, loading, router])
+
+  useEffect(() => {
+    if (user) {
+      getUserFiles()
+        .then(files => setUserFiles(files))
+        .catch(error => console.error('Error fetching files:', error));
+      
+      getPublications()
+        .then(pubs => setPublications(pubs))
+        .catch(error => console.error('Error fetching publications:', error));
+    }
+  }, [user])
 
   if (loading) {
     return <div>Loading...</div>
@@ -73,6 +118,19 @@ export default function DashboardPage() {
     }
   }
 
+  const handleCreatePublication = async () => {
+    if (publicationForm.title && publicationForm.abstract) {
+      try {
+        await createPublication(publicationForm)
+        const updatedPublications = await getPublications()
+        setPublications(updatedPublications)
+        setPublicationForm({ title: "", abstract: "" })
+      } catch (error) {
+        console.error('Error creating publication:', error)
+      }
+    }
+  }
+
   const handleReply = (messageId: string, senderId: string, originalSubject: string) => {
     setSelectedUser(senderId)
     setReplyToMessage(messageId)
@@ -86,6 +144,10 @@ export default function DashboardPage() {
   const unreadCount = getUnreadCount()
   const conversations = getConversations()
   const selectedConversationMessages = selectedConversation ? getConversation(selectedConversation) : []
+  
+  // Dynamic stats calculation
+  const myDocumentsCount = userFiles.filter(file => file.uploaded_by?.id === user.id).length
+  const myPublicationsCount = publications.filter(pub => pub.posted_by?.id === user.id).length
 
   const fadeInUp = {
     initial: { opacity: 0, y: 60 },
@@ -146,10 +208,10 @@ export default function DashboardPage() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
         >
           {[
-            { icon: FileText, title: "Mes Documents", count: "12", color: "purple" },
+            { icon: FileText, title: "Mes Documents", count: myDocumentsCount.toString(), color: "purple" },
             { icon: MessageSquare, title: "Messages", count: unreadCount.toString(), color: "blue" },
             { icon: Calendar, title: "Événements", count: "3", color: "green" },
-            { icon: BookOpen, title: "Publications", count: "8", color: "orange" },
+            { icon: BookOpen, title: "Publications", count: myPublicationsCount.toString(), color: "orange" },
           ].map((stat, index) => (
             <motion.div key={index} variants={fadeInUp}>
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
@@ -404,6 +466,159 @@ export default function DashboardPage() {
               )}
             </AnimatePresence>
 
+            {/* Document Sharing Section */}
+            <AnimatePresence>
+              {showDocuments && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Upload className="h-5 w-5 mr-2 text-blue-600" />
+                          Partage de Documents
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => setShowDocuments(false)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </CardTitle>
+                      <CardDescription>Zone sécurisée pour l'échange de documents</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div
+                        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        onDrop={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const files = Array.from(e.dataTransfer.files);
+                          for (const file of files) {
+                            try {
+                              await uploadFile(file);
+                              const updatedFiles = await getUserFiles();
+                              setUserFiles(updatedFiles);
+                            } catch (error) {
+                              console.error('Error uploading file:', error);
+                            }
+                          }
+                        }}
+                      >
+                        <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600 mb-4">Glissez-déposez vos fichiers ici ou cliquez pour parcourir</p>
+                        <Input
+                          type="file"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const files = Array.from(e.target.files || []);
+                            for (const file of files) {
+                              try {
+                                await uploadFile(file);
+                                const updatedFiles = await getUserFiles();
+                                setUserFiles(updatedFiles);
+                              } catch (error) {
+                                console.error('Error uploading file:', error);
+                              }
+                            }
+                          }}
+                          multiple
+                          id="file-upload"
+                        />
+                        <Button 
+                          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white"
+                          onClick={() => document.getElementById('file-upload')?.click()}
+                        >
+                          Sélectionner des fichiers
+                        </Button>
+                      </div>
+                      <RecentDocuments 
+                        userFiles={userFiles} 
+                        currentUserId={user.id}
+                        onFileDelete={(fileId) => setUserFiles(files => files.filter(f => f.id !== fileId))}
+                      />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Publication Sharing Section */}
+            <AnimatePresence>
+              {showPublications && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <BookOpen className="h-5 w-5 mr-2 text-green-600" />
+                          Partage de Publications
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => setShowPublications(false)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </CardTitle>
+                      <CardDescription>Partagez vos publications et recherches avec l'équipe</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {/* Publication Form */}
+                        <div className="border-b pb-4">
+                          <h4 className="font-medium text-gray-800 mb-3">Partager une nouvelle publication</h4>
+                          <div className="space-y-3">
+                            <div>
+                              <Label htmlFor="pub-title">Titre de la publication</Label>
+                              <Input
+                                id="pub-title"
+                                value={publicationForm.title}
+                                onChange={(e) => setPublicationForm(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="Titre de votre publication..."
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="pub-abstract">Résumé</Label>
+                              <Textarea
+                                id="pub-abstract"
+                                value={publicationForm.abstract}
+                                onChange={(e) => setPublicationForm(prev => ({ ...prev, abstract: e.target.value }))}
+                                placeholder="Résumé de la publication..."
+                                rows={4}
+                              />
+                            </div>
+
+                            <Button 
+                              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white"
+                              onClick={handleCreatePublication}
+                              disabled={!publicationForm.title || !publicationForm.abstract}
+                            >
+                              <BookOpen className="h-4 w-4 mr-2" />
+                              Partager la publication
+                            </Button>
+                          </div>
+                        </div>
+
+                        <RecentPublications 
+                          publications={publications} 
+                          currentUserId={user.id}
+                          onPublicationDelete={(publicationId) => setPublications(pubs => pubs.filter(p => p.id !== publicationId))}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Recent Activities */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
@@ -439,46 +654,7 @@ export default function DashboardPage() {
               </Card>
             </motion.div>
 
-            {/* Document Sharing */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Upload className="h-5 w-5 mr-2 text-blue-600" />
-                    Partage de Documents
-                  </CardTitle>
-                  <CardDescription>Zone sécurisée pour l'échange de documents</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-4">Glissez-déposez vos fichiers ici ou cliquez pour parcourir</p>
-                    <Button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-                      Sélectionner des fichiers
-                    </Button>
-                  </div>
-                  <div className="mt-4">
-                    <h4 className="font-medium text-gray-800 mb-2">Documents récents :</h4>
-                    <div className="space-y-2">
-                      {["rapport-recherche-q4.pdf", "presentation-ia-ethique.pptx", "donnees-experimentales.xlsx"].map(
-                        (file, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <span className="text-sm text-gray-700">{file}</span>
-                            <Button variant="ghost" size="sm" className="text-purple-600">
-                              Télécharger
-                            </Button>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+
           </div>
 
           {/* Right Column */}
@@ -498,24 +674,41 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <Button className="w-full justify-start bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Nouveau Document
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white"
+                    <Button 
+                      variant={showDocuments ? "default" : "outline"}
+                      className={`w-full justify-start ${
+                        showDocuments 
+                          ? "bg-purple-600 text-white hover:bg-purple-700" 
+                          : "border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white"
+                      }`}
+                      onClick={() => setShowDocuments(!showDocuments)}
                     >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Créer un Événement
+                      <FileText className="h-4 w-4 mr-2" />
+                      {showDocuments ? "Fermer Documents" : "Nouveau Document"}
                     </Button>
                     <Button
-                      variant="outline"
-                      className="w-full justify-start border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                      variant={showPublications ? "default" : "outline"}
+                      className={`w-full justify-start ${
+                        showPublications 
+                          ? "bg-green-600 text-white hover:bg-green-700" 
+                          : "border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                      }`}
+                      onClick={() => setShowPublications(!showPublications)}
+                    >
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      {showPublications ? "Fermer Publications" : "Partager Publication"}
+                    </Button>
+                    <Button
+                      variant={showMessaging ? "default" : "outline"}
+                      className={`w-full justify-start ${
+                        showMessaging 
+                          ? "bg-blue-600 text-white hover:bg-blue-700" 
+                          : "border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                      }`}
                       onClick={() => setShowMessaging(!showMessaging)}
                     >
                       <MessageSquare className="h-4 w-4 mr-2" />
-                      Messagerie
+                      {showMessaging ? "Fermer Messagerie" : "Messagerie"}
                     </Button>
                     <Button
                       variant="outline"
