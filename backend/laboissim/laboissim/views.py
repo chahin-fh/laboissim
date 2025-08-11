@@ -45,23 +45,25 @@ class SiteContentView(APIView):
 class SimpleGoogleOAuthView(View):
     def get(self, request, *args, **kwargs):
         """Simple Google OAuth view that handles the entire flow"""
+        print(f"SimpleGoogleOAuthView called with GET params: {request.GET}")
+        
+        # Check if we have an authorization code
+        code = request.GET.get('code')
+        
+        if not code:
+            # Redirect to Google OAuth
+            google_oauth_url = (
+                "https://accounts.google.com/o/oauth2/v2/auth?"
+                "client_id=" + settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY + "&"
+                "redirect_uri=https://laboissim.onrender.com/auth/complete/google-oauth2/&"
+                "scope=email profile&"
+                "response_type=code&"
+                "access_type=offline&"
+                "prompt=consent"
+            )
+            return redirect(google_oauth_url)
+        
         try:
-            # Check if we have an authorization code
-            code = request.GET.get('code')
-            
-            if not code:
-                # Redirect to Google OAuth
-                google_oauth_url = (
-                    "https://accounts.google.com/o/oauth2/v2/auth?"
-                    "client_id=" + settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY + "&"
-                    "redirect_uri=https://laboissim.onrender.com/auth/google/simple/&"
-                    "scope=email profile&"
-                    "response_type=code&"
-                    "access_type=offline&"
-                    "prompt=consent"
-                )
-                return redirect(google_oauth_url)
-            
             # Exchange code for tokens
             token_url = "https://oauth2.googleapis.com/token"
             token_data = {
@@ -69,7 +71,7 @@ class SimpleGoogleOAuthView(View):
                 'client_secret': settings.SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET,
                 'code': code,
                 'grant_type': 'authorization_code',
-                'redirect_uri': 'https://laboissim.onrender.com/auth/google/simple/'
+                'redirect_uri': 'https://laboissim.onrender.com/auth/complete/google-oauth2/'
             }
             
             token_response = requests.post(token_url, data=token_data)
@@ -124,6 +126,15 @@ class SimpleGoogleOAuthView(View):
         except Exception as e:
             print(f"Simple Google OAuth error: {e}")
             return redirect("https://laboissim.vercel.app/login?error=google_auth_failed")
+
+class InterceptSocialAuthView(View):
+    def get(self, request, *args, **kwargs):
+        """Intercept social auth URLs and redirect to our custom flow"""
+        print(f"InterceptSocialAuthView called with path: {request.path}")
+        print(f"GET params: {request.GET}")
+        
+        # Redirect to our simple OAuth flow
+        return redirect('/auth/google/simple/')
 
 class CustomGoogleOAuthView(View):
     def get(self, request, *args, **kwargs):
