@@ -24,7 +24,7 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework.routers import DefaultRouter
 from .email_token_view import EmailTokenObtainPairView, GoogleLoginJWTView
-from .views import GoogleOAuthCompleteView
+from .views import GoogleOAuthCompleteView, CustomGoogleOAuthView, SimpleGoogleOAuthView
 from .views import CurrentUserView, SiteContentView
 
 
@@ -38,6 +38,8 @@ urlpatterns = [
     path('api/user/', CurrentUserView.as_view(), name='current-user'),
     path('api/site-content/', SiteContentView.as_view(), name='site-content'),
     path('auth/google/custom/', GoogleOAuthCompleteView.as_view(), name='google_oauth_custom'),
+    path('auth/google/custom-complete/', CustomGoogleOAuthView.as_view(), name='google_oauth_custom_complete'),
+    path('auth/google/simple/', SimpleGoogleOAuthView.as_view(), name='google_oauth_simple'),
 ]
 
 # Serve media files in development

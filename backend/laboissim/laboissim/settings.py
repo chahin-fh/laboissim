@@ -119,6 +119,11 @@ CSRF_TRUSTED_ORIGINS = [
     "https://laboissim.onrender.com",
 ]
 CSRF_COOKIE_SECURE = True
+
+# Session configuration for social auth
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -177,6 +182,26 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
     'access_type': 'offline',
     'prompt': 'consent'
 }
+
+# Social Auth Security Settings
+SOCIAL_AUTH_SANITIZE_REDIRECTS = False
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+SOCIAL_AUTH_RAISE_EXCEPTIONS = True
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/login/'
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/auth/complete/google-oauth2/'
+SOCIAL_AUTH_LOGOUT_REDIRECT_URL = '/login/'
+
+# Social Auth Storage - Required for state parameter handling
+SOCIAL_AUTH_STORAGE = 'social_django.models.DjangoStorage'
+
+# Additional Social Auth Settings for state parameter
+SOCIAL_AUTH_SESSION_EXPIRATION = False
+SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = []
+SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_EMAILS = []
+SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['username', 'email']
+SOCIAL_AUTH_IMMUTABLE_USER_FIELDS = ['username', 'email']
+
+
 
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
