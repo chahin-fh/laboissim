@@ -25,7 +25,13 @@ from rest_framework_simplejwt.views import (
 from rest_framework.routers import DefaultRouter
 from .email_token_view import EmailTokenObtainPairView, GoogleLoginJWTView
 from .views import GoogleOAuthCompleteView, CustomGoogleOAuthView, SimpleGoogleOAuthView, CurrentUserView, SiteContentView
+from .file_views import FileViewSet
+from .publication_views import PublicationViewSet
 
+# Create router and register viewsets
+router = DefaultRouter()
+router.register(r'api/files', FileViewSet, basename='file')
+router.register(r'api/publications', PublicationViewSet, basename='publication')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -44,6 +50,9 @@ urlpatterns = [
     # Social auth URLs - include after custom views
     path('auth/', include('social_django.urls', namespace='social')),
 ]
+
+# Include router URLs
+urlpatterns += router.urls
 
 # Serve media files in development
 if settings.DEBUG:
