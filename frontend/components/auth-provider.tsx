@@ -194,9 +194,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       })
         .then(res => {
-          if (!res.ok) throw new Error("Invalid token");
-          return res.json();
+          if (!res.ok) {
+            // If token is invalid, try to refresh it
+            const refreshToken = localStorage.getItem("refresh");
+            if (refreshToken) {
+              return fetch("https://laboissim.onrender.com/api/token/refresh/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ refresh: refreshToken }),
+              })
+              .then(refreshRes => {
+                if (!refreshRes.ok) throw new Error("Invalid refresh token");
+                return refreshRes.json();
+              })
+              .then(refreshData => {
+                localStorage.setItem("token", refreshData.access);
+                // Retry the user fetch with new token
+                return fetch("https://laboissim.onrender.com/api/user/", {
+                  headers: {
+                    "Authorization": `Bearer ${refreshData.access}`,
+                  },
+                });
+              });
+            }
+            throw new Error("Invalid token");
+          }
+          return res;
         })
+        .then(res => res.json())
         .then(userData => {
           const user: User = {
             id: userData.id.toString(),
@@ -213,11 +238,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("user", JSON.stringify(user));
           setConnectedUsers([user]);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error("Token validation error:", error);
           setUser(null);
           setConnectedUsers([]);
           localStorage.removeItem("user");
           localStorage.removeItem("token");
+          localStorage.removeItem("refresh");
         })
         .finally(() => setLoading(false));
     } else {
