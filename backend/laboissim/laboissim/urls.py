@@ -23,7 +23,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from rest_framework.routers import DefaultRouter
-from .email_token_view import EmailTokenObtainPairView, GoogleLoginJWTView, GoogleOAuthCompleteView
+from .email_token_view import EmailTokenObtainPairView, GoogleLoginJWTView
+from .views import GoogleOAuthCompleteView
 from .views import CurrentUserView, SiteContentView
 
 
