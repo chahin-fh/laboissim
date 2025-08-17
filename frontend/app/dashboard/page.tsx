@@ -710,13 +710,6 @@ export default function DashboardPage() {
                       <MessageSquare className="h-4 w-4 mr-2" />
                       {showMessaging ? "Fermer Messagerie" : "Messagerie"}
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Voir l'Équipe
-                    </Button>
                   </div>
                 </CardContent>
               </Card>

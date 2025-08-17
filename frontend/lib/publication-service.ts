@@ -73,10 +73,10 @@ export async function deletePublication(publicationId: string): Promise<void> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-      const response = await fetch(`https://laboissim.onrender.com/api/publications/${publicationId}`, {
-      method: 'DELETE',
-      headers,
-    });
+  const response = await fetch(`https://laboissim.onrender.com/api/publications/${publicationId}`, {
+    method: 'DELETE',
+    headers,
+  });
 
   if (!response.ok) {
     const errorText = await response.text();

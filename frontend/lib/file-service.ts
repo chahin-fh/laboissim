@@ -103,7 +103,9 @@ export async function downloadFile(fileUrl: string, fileName: string): Promise<v
     });
 
     if (!response.ok) {
-      throw new Error('Failed to download file');
+      const errorText = await response.text();
+      console.error('Download error:', response.status, errorText);
+      throw new Error(`Failed to download file: ${response.status} ${errorText}`);
     }
 
     const blob = await response.blob();
@@ -127,4 +129,17 @@ export function formatFileSize(bytes: number): string {
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+export function getFileUrl(filePath: string): string {
+  // Convert relative file path to full URL
+  if (filePath.startsWith('http')) {
+    return filePath;
+  }
+  return `https://laboissim.onrender.com${filePath}`;
+}
+
+export function getFileDownloadUrl(fileId: string): string {
+  // Get the download endpoint URL for a specific file
+  return `https://laboissim.onrender.com/api/files/${fileId}/download/`;
 }

@@ -1,8 +1,10 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.http import FileResponse, Http404
 import os
 import mimetypes
 from .models import UserFile
@@ -43,9 +45,13 @@ class FileViewSet(viewsets.ModelViewSet):
             # Get file type and size
             file_type = mimetypes.guess_type(file_obj.name)[0] or 'application/octet-stream'
             file_size = file_obj.size
+            
+            # Get the name from the request data or use the file name
+            name = self.request.data.get('name', file_obj.name)
 
             serializer.save(
                 uploaded_by=self.request.user,
+                name=name,
                 file_type=file_type,
                 size=file_size
             )
@@ -66,3 +72,21 @@ class FileViewSet(viewsets.ModelViewSet):
             if os.path.isfile(instance.file.path):
                 os.remove(instance.file.path)
         return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def download(self, request, pk=None):
+        """Download a file with proper authentication"""
+        try:
+            file_obj = self.get_object()
+            if file_obj.file and os.path.exists(file_obj.file.path):
+                response = FileResponse(open(file_obj.file.path, 'rb'))
+                response['Content-Disposition'] = f'attachment; filename="{file_obj.name}"'
+                response['Content-Type'] = file_obj.file_type or 'application/octet-stream'
+                return response
+            else:
+                raise Http404("File not found")
+        except Exception as e:
+            return Response(
+                {"error": f"Error downloading file: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

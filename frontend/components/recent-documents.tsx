@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Download, Trash2, Calendar, User } from "lucide-react"
-import { deleteFile, formatFileSize } from "@/lib/file-service"
+import { deleteFile, formatFileSize, getFileDownloadUrl, downloadFile } from "@/lib/file-service"
 
 interface FileResponse {
   id: string;
@@ -42,6 +42,15 @@ export function RecentDocuments({ userFiles, currentUserId, onFileDelete }: Rece
         newSet.delete(fileId);
         return newSet;
       });
+    }
+  };
+
+  const handleDownload = async (file: FileResponse) => {
+    try {
+      const fileUrl = getFileDownloadUrl(file.id);
+      await downloadFile(fileUrl, file.name);
+    } catch (error) {
+      console.error('Error downloading file:', error);
     }
   };
 
@@ -91,7 +100,7 @@ export function RecentDocuments({ userFiles, currentUserId, onFileDelete }: Rece
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => window.open(file.file, '_blank')}
+                    onClick={() => handleDownload(file)}
                     className="border-blue-300 text-blue-600 hover:bg-blue-50"
                   >
                     <Download className="h-3 w-3" />
