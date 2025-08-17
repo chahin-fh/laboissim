@@ -17,10 +17,15 @@ export async function uploadFile(file: File): Promise<FileResponse> {
   formData.append('name', file.name);
 
   const token = localStorage.getItem('token');
+  console.log('Token for upload:', token ? 'Present' : 'Missing');
+  
   const headers: HeadersInit = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
+
+  console.log('Uploading file:', file.name, 'Size:', file.size);
+  console.log('Headers:', headers);
 
   const response = await fetch('https://laboissim.onrender.com/api/files', {
     method: 'POST',
@@ -28,13 +33,18 @@ export async function uploadFile(file: File): Promise<FileResponse> {
     headers,
   });
 
+  console.log('Upload response status:', response.status);
+  console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
+
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Upload error:', response.status, errorText);
     throw new Error(`Failed to upload file: ${response.status} ${errorText}`);
   }
 
-  return response.json();
+  const result = await response.json();
+  console.log('Upload result:', result);
+  return result;
 }
 
 export async function getUserFiles(): Promise<FileResponse[]> {

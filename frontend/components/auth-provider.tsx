@@ -485,7 +485,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setUserFromJWT = useCallback((token: string) => {
     try {
+      console.log('Decoding JWT token...');
       const decoded: any = jwtDecode(token);
+      console.log('JWT decoded:', decoded);
+      
       // Map JWT fields to your User type as needed
       const user: User = {
         id: decoded.user_id?.toString() || decoded.sub || "",
@@ -495,13 +498,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: "member", // You can adjust this if your JWT includes role
         status: "active",
         lastLogin: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        date_joined: new Date().toISOString(),
         verified: true,
       };
+      console.log('Created user object:', user);
       setUser(user);
       localStorage.setItem("user", JSON.stringify(user));
       setConnectedUsers([user]);
     } catch (e) {
+      console.error('Error decoding JWT:', e);
       // Invalid token
       setUser(null);
       setConnectedUsers([]);

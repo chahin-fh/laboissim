@@ -121,12 +121,16 @@ export default function DashboardPage() {
   const handleCreatePublication = async () => {
     if (publicationForm.title && publicationForm.abstract) {
       try {
+        console.log('Creating publication:', publicationForm);
         await createPublication(publicationForm)
+        console.log('Publication created successfully');
         const updatedPublications = await getPublications()
         setPublications(updatedPublications)
         setPublicationForm({ title: "", abstract: "" })
       } catch (error) {
         console.error('Error creating publication:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        alert(`Erreur lors de la création de la publication: ${errorMessage}`);
       }
     }
   }
@@ -501,11 +505,15 @@ export default function DashboardPage() {
                           const files = Array.from(e.dataTransfer.files);
                           for (const file of files) {
                             try {
+                              console.log('Uploading file:', file.name, file.size);
                               await uploadFile(file);
+                              console.log('File uploaded successfully');
                               const updatedFiles = await getUserFiles();
                               setUserFiles(updatedFiles);
                             } catch (error) {
                               console.error('Error uploading file:', error);
+                              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                              alert(`Erreur lors du téléchargement: ${errorMessage}`);
                             }
                           }
                         }}
@@ -519,11 +527,15 @@ export default function DashboardPage() {
                             const files = Array.from(e.target.files || []);
                             for (const file of files) {
                               try {
+                                console.log('Uploading file:', file.name, file.size);
                                 await uploadFile(file);
+                                console.log('File uploaded successfully');
                                 const updatedFiles = await getUserFiles();
                                 setUserFiles(updatedFiles);
                               } catch (error) {
                                 console.error('Error uploading file:', error);
+                                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                                alert(`Erreur lors du téléchargement: ${errorMessage}`);
                               }
                             }
                           }}

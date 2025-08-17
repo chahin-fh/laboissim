@@ -5,7 +5,7 @@ import { useAuth } from "@/components/auth-provider";
 
 export default function GoogleCallbackPage() {
   const router = useRouter();
-  const { setUser } = useAuth();
+  const { setUserFromJWT } = useAuth();
 
   useEffect(() => {
     // Get URL parameters
@@ -48,13 +48,12 @@ export default function GoogleCallbackPage() {
         role,
         status: "active" as const,
         lastLogin: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        date_joined: new Date().toISOString(),
         verified: true,
       };
 
-      // Set user in auth context
-      setUser(user);
-      localStorage.setItem("user", JSON.stringify(user));
+      // Set user in auth context using JWT token
+      setUserFromJWT(accessToken);
       
       // Redirect to dashboard
       router.push("/dashboard");
@@ -62,7 +61,7 @@ export default function GoogleCallbackPage() {
       console.error('Error processing OAuth response:', error);
       router.push("/login?error=google&message=" + encodeURIComponent("Failed to process authentication"));
     }
-  }, [router, setUser]);
+  }, [router, setUserFromJWT]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/20 flex items-center justify-center">

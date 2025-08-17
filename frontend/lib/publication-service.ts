@@ -16,6 +16,8 @@ interface CreatePublicationData {
 
 export async function createPublication(data: CreatePublicationData): Promise<PublicationResponse> {
   const token = localStorage.getItem('token');
+  console.log('Token for publication:', token ? 'Present' : 'Missing');
+  
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
@@ -23,11 +25,17 @@ export async function createPublication(data: CreatePublicationData): Promise<Pu
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  console.log('Creating publication with data:', data);
+  console.log('Headers:', headers);
+
   const response = await fetch('https://laboissim.onrender.com/api/publications', {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
   });
+
+  console.log('Publication response status:', response.status);
+  console.log('Publication response headers:', Object.fromEntries(response.headers.entries()));
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -35,7 +43,9 @@ export async function createPublication(data: CreatePublicationData): Promise<Pu
     throw new Error(`Failed to create publication: ${response.status} ${errorText}`);
   }
 
-  return response.json();
+  const result = await response.json();
+  console.log('Publication result:', result);
+  return result;
 }
 
 export async function getPublications(): Promise<PublicationResponse[]> {
