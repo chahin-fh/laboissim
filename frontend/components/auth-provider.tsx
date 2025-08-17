@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: "admin",
         status: "active",
         lastLogin: new Date().toISOString(),
-        createdAt: "2023-01-01T00:00:00Z",
+        date_joined: "2023-01-01T00:00:00Z",
         verified: true,
       },
       {
@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: "member",
         status: "active",
         lastLogin: new Date(Date.now() - 86400000).toISOString(),
-        createdAt: "2023-06-01T00:00:00Z",
+        date_joined: "2023-06-01T00:00:00Z",
         verified: true,
       },
     ]
@@ -489,13 +489,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const decoded: any = jwtDecode(token);
       console.log('JWT decoded:', decoded);
       
+      // Try different possible user ID fields
+      const userId = decoded.user_id || decoded.sub || decoded.id || "";
+      console.log('User ID from JWT:', userId);
+      
       // Map JWT fields to your User type as needed
       const user: User = {
-        id: decoded.user_id?.toString() || decoded.sub || "",
+        id: userId.toString(),
         email: decoded.email || "",
-        name: decoded.name || decoded.email?.split("@")[0] || "",
+        name: decoded.name || decoded.username || decoded.email?.split("@")[0] || "",
         password: "",
-        role: "member", // You can adjust this if your JWT includes role
+        role: decoded.is_staff || decoded.is_superuser ? "admin" : "member",
         status: "active",
         lastLogin: new Date().toISOString(),
         date_joined: new Date().toISOString(),

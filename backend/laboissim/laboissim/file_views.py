@@ -5,6 +5,7 @@ from rest_framework.decorators import action
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.http import FileResponse, Http404
+from django.conf import settings
 import os
 import mimetypes
 from .models import UserFile
@@ -39,25 +40,50 @@ class FileViewSet(viewsets.ModelViewSet):
         # Users can only delete their own files (handled in destroy method)
         return UserFile.objects.all().order_by('-uploaded_at')
 
-    def perform_create(self, serializer):
-        file_obj = self.request.FILES.get('file')
-        if file_obj:
-            # Get file type and size
-            file_type = mimetypes.guess_type(file_obj.name)[0] or 'application/octet-stream'
-            file_size = file_obj.size
-            
-            # Get the name from the request data or use the file name
-            name = self.request.data.get('name', file_obj.name)
-
-            serializer.save(
-                uploaded_by=self.request.user,
-                name=name,
-                file_type=file_type,
-                size=file_size
+    def create(self, request, *args, **kwargs):
+        try:
+            print(f"File upload request from user: {request.user}")
+            print(f"Request data: {request.data}")
+            print(f"Request FILES: {request.FILES}")
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            print(f"Error in create: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {"error": f"Failed to upload file: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        else:
-            # If no file, still save with user
-            serializer.save(uploaded_by=self.request.user)
+
+    def perform_create(self, serializer):
+        try:
+            # Ensure media directory exists
+            media_root = getattr(settings, 'MEDIA_ROOT', None)
+            if media_root and not os.path.exists(media_root):
+                os.makedirs(media_root, exist_ok=True)
+                print(f"Created media directory: {media_root}")
+            
+            file_obj = self.request.FILES.get('file')
+            if file_obj:
+                # Get file type and size
+                file_type = mimetypes.guess_type(file_obj.name)[0] or 'application/octet-stream'
+                file_size = file_obj.size
+                
+                # Get the name from the request data or use the file name
+                name = self.request.data.get('name', file_obj.name)
+
+                serializer.save(
+                    uploaded_by=self.request.user,
+                    name=name,
+                    file_type=file_type,
+                    size=file_size
+                )
+            else:
+                # If no file, still save with user
+                serializer.save(uploaded_by=self.request.user)
+        except Exception as e:
+            print(f"Error in perform_create: {str(e)}")
+            raise
             
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

@@ -41,8 +41,26 @@ class PublicationViewSet(viewsets.ModelViewSet):
         # Users can only delete their own publications (handled in destroy method)
         return Publication.objects.all().order_by('-posted_at')
 
+    def create(self, request, *args, **kwargs):
+        try:
+            print(f"Publication create request from user: {request.user}")
+            print(f"Request data: {request.data}")
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            print(f"Error in publication create: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {"error": f"Failed to create publication: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     def perform_create(self, serializer):
-        serializer.save(posted_by=self.request.user)
+        try:
+            serializer.save(posted_by=self.request.user)
+        except Exception as e:
+            print(f"Error in perform_create: {str(e)}")
+            raise
             
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
