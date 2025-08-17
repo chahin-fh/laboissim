@@ -23,7 +23,7 @@ export async function createPublication(data: CreatePublicationData): Promise<Pu
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch('http://localhost:8000/api/publications', {
+  const response = await fetch('https://laboissim.onrender.com/api/publications', {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
@@ -42,7 +42,7 @@ export async function getPublications(): Promise<PublicationResponse[]> {
   try {
     console.log('Attempting to fetch publications from /api/publications');
     
-    const response = await fetch('http://localhost:8000/api/publications', {
+    const response = await fetch('https://laboissim.onrender.com/api/publications', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ export async function deletePublication(publicationId: string): Promise<void> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-      const response = await fetch(`http://localhost:8000/api/publications/${publicationId}`, {
+      const response = await fetch(`https://laboissim.onrender.com/api/publications/${publicationId}`, {
       method: 'DELETE',
       headers,
     });

@@ -11,7 +11,7 @@ interface User {
   role: "member" | "admin"
   status: "active" | "banned" | "pending"
   lastLogin?: string
-  createdAt: string
+  date_joined: string
   verified: boolean
 }
 
@@ -194,34 +194,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       })
         .then(res => {
-          if (!res.ok) {
-            // If token is invalid, try to refresh it
-            const refreshToken = localStorage.getItem("refresh");
-            if (refreshToken) {
-              return fetch("https://laboissim.onrender.com/api/token/refresh/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ refresh: refreshToken }),
-              })
-              .then(refreshRes => {
-                if (!refreshRes.ok) throw new Error("Invalid refresh token");
-                return refreshRes.json();
-              })
-              .then(refreshData => {
-                localStorage.setItem("token", refreshData.access);
-                // Retry the user fetch with new token
-                return fetch("https://laboissim.onrender.com/api/user/", {
-                  headers: {
-                    "Authorization": `Bearer ${refreshData.access}`,
-                  },
-                });
-              });
-            }
-            throw new Error("Invalid token");
-          }
-          return res;
+          if (!res.ok) throw new Error("Invalid token");
+          return res.json();
         })
-        .then(res => res.json())
         .then(userData => {
           const user: User = {
             id: userData.id.toString(),
@@ -231,20 +206,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: userData.is_staff || userData.is_superuser ? "admin" : "member",
             status: "active",
             lastLogin: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
+            date_joined: userData.date_joined || new Date().toISOString(),
             verified: true,
           };
           setUser(user);
           localStorage.setItem("user", JSON.stringify(user));
           setConnectedUsers([user]);
         })
-        .catch((error) => {
-          console.error("Token validation error:", error);
+        .catch(() => {
           setUser(null);
           setConnectedUsers([]);
           localStorage.removeItem("user");
           localStorage.removeItem("token");
-          localStorage.removeItem("refresh");
         })
         .finally(() => setLoading(false));
     } else {
@@ -290,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: userData.is_staff || userData.is_superuser ? "admin" : "member",
           status: "active",
           lastLogin: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
+          date_joined: userData.date_joined || new Date().toISOString(),
           verified: true,
         };
         setUser(user);
@@ -308,13 +281,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     setConnectedUsers([])
     localStorage.removeItem("user")
+    localStorage.removeItem("token")
   }
 
-  const createUser = (userData: Omit<User, "id" | "createdAt">) => {
+  const createUser = (userData: Omit<User, "id" | "date_joined">) => {
     const newUser: User = {
       ...userData,
       id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
+      date_joined: new Date().toISOString(),
       verified: true,
     }
     const updatedUsers = [...users, newUser]

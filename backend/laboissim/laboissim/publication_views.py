@@ -24,7 +24,17 @@ class PublicationSerializer(serializers.ModelSerializer):
 
 class PublicationViewSet(viewsets.ModelViewSet):
     serializer_class = PublicationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        """
+        Allow public access to list and retrieve publications,
+        but require authentication for create, update, and delete operations.
+        """
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         # Return all publications ordered by posting date
