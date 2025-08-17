@@ -49,6 +49,10 @@ urlpatterns = [
     path('api/site-content/', SiteContentView.as_view(), name='site-content'),
     # Social auth URLs - include after custom views
     path('auth/', include('social_django.urls', namespace='social')),
+    path('admin/', admin.site.urls),
+    path('api/token/email/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair_email'),
+    path('api/user/profile/', UserProfileView.as_view(), name='user-profile'),
+    path('api/team-members/', TeamMembersView.as_view(), name='team-members'),
 ]
 
 # Include router URLs
