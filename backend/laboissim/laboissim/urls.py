@@ -24,7 +24,7 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework.routers import DefaultRouter
 from .email_token_view import EmailTokenObtainPairView, GoogleLoginJWTView
-from .views import GoogleOAuthCompleteView, CustomGoogleOAuthView, SimpleGoogleOAuthView, CurrentUserView, SiteContentView , UserProfileView
+from .views import GoogleOAuthCompleteView, CustomGoogleOAuthView, SimpleGoogleOAuthView, CurrentUserView, SiteContentView , UserProfileView , TeamMembersView
 from .file_views import FileViewSet
 from .publication_views import PublicationViewSet
 
