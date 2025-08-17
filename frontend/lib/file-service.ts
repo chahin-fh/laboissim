@@ -27,7 +27,7 @@ export async function uploadFile(file: File): Promise<FileResponse> {
   console.log('Uploading file:', file.name, 'Size:', file.size);
   console.log('Headers:', headers);
 
-  const response = await fetch('https://laboissim.onrender.com/api/files', {
+  const response = await fetch('https://laboissim.onrender.com/api/files/', {
     method: 'POST',
     body: formData,
     headers,
@@ -59,7 +59,7 @@ export async function getUserFiles(): Promise<FileResponse[]> {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch('https://laboissim.onrender.com/api/files', {
+    const response = await fetch('https://laboissim.onrender.com/api/files/', {
       headers,
     });
 

@@ -28,7 +28,7 @@ export async function createPublication(data: CreatePublicationData): Promise<Pu
   console.log('Creating publication with data:', data);
   console.log('Headers:', headers);
 
-  const response = await fetch('https://laboissim.onrender.com/api/publications', {
+  const response = await fetch('https://laboissim.onrender.com/api/publications/', {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
@@ -52,7 +52,7 @@ export async function getPublications(): Promise<PublicationResponse[]> {
   try {
     console.log('Attempting to fetch publications from /api/publications');
     
-    const response = await fetch('https://laboissim.onrender.com/api/publications', {
+    const response = await fetch('https://laboissim.onrender.com/api/publications/', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
