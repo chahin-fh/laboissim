@@ -23,7 +23,7 @@ export async function createPublication(data: CreatePublicationData): Promise<Pu
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch('https://laboissim.onrender.com/api/publications/', {
+  const response = await fetch('http://localhost:8000/api/publications', {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
@@ -42,20 +42,14 @@ export async function getPublications(): Promise<PublicationResponse[]> {
   try {
     console.log('Attempting to fetch publications from /api/publications');
     
-    const token = localStorage.getItem('token');
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch('https://laboissim.onrender.com/api/publications/', {
-      headers,
+    const response = await fetch('http://localhost:8000/api/publications', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
     console.log('Response status:', response.status);
-    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -79,10 +73,10 @@ export async function deletePublication(publicationId: string): Promise<void> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`https://laboissim.onrender.com/api/publications/${publicationId}/`, {
-    method: 'DELETE',
-    headers,
-  });
+      const response = await fetch(`http://localhost:8000/api/publications/${publicationId}`, {
+      method: 'DELETE',
+      headers,
+    });
 
   if (!response.ok) {
     const errorText = await response.text();

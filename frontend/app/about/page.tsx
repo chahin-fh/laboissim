@@ -1,18 +1,31 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Users, History, Lightbulb } from "lucide-react"
+import { ArrowRight, Users, History, Lightbulb, User, Mail, MapPin, Building } from "lucide-react"
 import { useContentManager } from "@/lib/content-manager"
+import { useTeamMembers, TeamMember } from "@/lib/team-service"
 
 export default function AboutPage() {
   const { content } = useContentManager()
-  const [selectedMember, setSelectedMember] = useState<string | null>(null)
+  const { members, loading, error } = useTeamMembers()
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState("history")
+
+  useEffect(() => {
+    const tab = searchParams.get("tab")
+    if (tab && ["history", "team", "expertise"].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   const fadeInUp = {
     initial: { opacity: 0, y: 60 },
@@ -28,104 +41,16 @@ export default function AboutPage() {
     },
   }
 
-  const teamMembers = [
-    {
-      id: "prof-martin",
-      name: "Prof. Jean Martin",
-      role: "Directeur de Recherche",
-      image: "/placeholder.svg?height=300&width=300",
-      bio: "Le Professeur Jean Martin dirige l'équipe depuis sa création en 2010. Spécialiste en intelligence artificielle éthique, il a publié plus de 100 articles dans des revues internationales et reçu le Prix d'Excellence en Recherche en 2018.",
-      expertise: ["Intelligence Artificielle", "Éthique des Technologies", "Apprentissage Automatique"],
-      education: "Doctorat en Informatique, École Polytechnique (2005)",
-      publications: 120,
-      citations: 5600,
-      profiles: {
-        orcid: "0000-0001-2345-6789",
-        linkedin: "jean-martin",
-        scholar: "jmartin",
-      },
-    },
-    {
-      id: "dr-dubois",
-      name: "Dr. Sophie Dubois",
-      role: "Chercheuse Principale",
-      image: "/placeholder.svg?height=300&width=300",
-      bio: "Dr. Sophie Dubois est spécialisée en biotechnologie et médecine personnalisée. Ses travaux sur les thérapies géniques ont été publiés dans Nature et Science. Elle a rejoint l'équipe en 2015 après un post-doctorat à Harvard.",
-      expertise: ["Biotechnologie", "Médecine Personnalisée", "Thérapie Génique"],
-      education: "Doctorat en Biologie Moléculaire, Université de Paris (2012)",
-      publications: 85,
-      citations: 3200,
-      profiles: {
-        orcid: "0000-0002-3456-7890",
-        linkedin: "sophie-dubois",
-        scholar: "sdubois",
-      },
-    },
-    {
-      id: "dr-leroy",
-      name: "Dr. Thomas Leroy",
-      role: "Chercheur Senior",
-      image: "/placeholder.svg?height=300&width=300",
-      bio: "Dr. Thomas Leroy est expert en énergies renouvelables et développement durable. Ses recherches sur les cellules solaires de nouvelle génération ont conduit à plusieurs brevets internationaux et collaborations industrielles.",
-      expertise: ["Énergies Renouvelables", "Matériaux Avancés", "Développement Durable"],
-      education: "Doctorat en Physique, École Normale Supérieure (2014)",
-      publications: 62,
-      citations: 2100,
-      profiles: {
-        orcid: "0000-0003-4567-8901",
-        linkedin: "thomas-leroy",
-        scholar: "tleroy",
-      },
-    },
-    {
-      id: "dr-chen",
-      name: "Dr. Li Chen",
-      role: "Chercheuse Post-doctorale",
-      image: "/placeholder.svg?height=300&width=300",
-      bio: "Dr. Li Chen est spécialiste en nanotechnologie et matériaux intelligents. Elle a rejoint l'équipe en 2020 après son doctorat au MIT. Ses travaux actuels portent sur les applications médicales des nanomatériaux.",
-      expertise: ["Nanotechnologie", "Matériaux Intelligents", "Applications Médicales"],
-      education: "Doctorat en Science des Matériaux, MIT (2019)",
-      publications: 28,
-      citations: 950,
-      profiles: {
-        orcid: "0000-0004-5678-9012",
-        linkedin: "li-chen",
-        scholar: "lchen",
-      },
-    },
-    {
-      id: "dr-garcia",
-      name: "Dr. Carlos Garcia",
-      role: "Chercheur Associé",
-      image: "/placeholder.svg?height=300&width=300",
-      bio: "Dr. Carlos Garcia est spécialisé en informatique quantique et cryptographie. Il collabore avec plusieurs universités internationales et a été invité comme conférencier dans plus de 20 pays.",
-      expertise: ["Informatique Quantique", "Cryptographie", "Sécurité des Données"],
-      education: "Doctorat en Mathématiques Appliquées, Université de Barcelone (2016)",
-      publications: 45,
-      citations: 1800,
-      profiles: {
-        orcid: "0000-0005-6789-0123",
-        linkedin: "carlos-garcia",
-        scholar: "cgarcia",
-      },
-    },
-    {
-      id: "dr-moreau",
-      name: "Dr. Émilie Moreau",
-      role: "Chercheuse Associée",
-      image: "/placeholder.svg?height=300&width=300",
-      bio: "Dr. Émilie Moreau travaille sur l'interface entre neurosciences et intelligence artificielle. Ses recherches visent à développer des modèles computationnels inspirés du cerveau humain pour améliorer les systèmes d'IA.",
-      expertise: ["Neurosciences", "Intelligence Artificielle", "Modèles Cognitifs"],
-      education: "Doctorat en Neurosciences Computationnelles, Sorbonne Université (2017)",
-      publications: 37,
-      citations: 1400,
-      profiles: {
-        orcid: "0000-0006-7890-1234",
-        linkedin: "emilie-moreau",
-        scholar: "emoreau",
-      },
-    },
-  ]
+  const handleMemberClick = (member: TeamMember) => {
+    router.push(`/profile/${member.id}`)
+  }
+
+  const getProfileImageUrl = (member: TeamMember) => {
+    if (member.profile?.profile_image) {
+      return `https://laboissim.onrender.com${member.profile.profile_image}`
+    }
+    return "/placeholder-user.jpg"
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 pt-20">
@@ -147,19 +72,7 @@ export default function AboutPage() {
         </motion.div>
 
         {/* Tabs Navigation */}
-        <Tabs defaultValue="history" className="mb-16">
-          <TabsList className="grid w-full md:w-fit mx-auto grid-cols-3 mb-8">
-            <TabsTrigger value="history" className="text-base flex items-center gap-2">
-              <History className="h-4 w-4" /> Histoire
-            </TabsTrigger>
-            <TabsTrigger value="team" className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4" /> Équipe
-            </TabsTrigger>
-            <TabsTrigger value="expertise" className="text-base flex items-center gap-2">
-              <Lightbulb className="h-4 w-4" /> Expertise
-            </TabsTrigger>
-          </TabsList>
-
+        <Tabs value={activeTab} defaultValue="history" className="mb-16">
           {/* History Tab */}
           <TabsContent value="history">
             <motion.div
@@ -262,91 +175,18 @@ export default function AboutPage() {
                 </p>
               </div>
 
-              {selectedMember ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Button
-                    variant="ghost"
-                    onClick={() => setSelectedMember(null)}
-                    className="mb-6 text-purple-600 hover:text-purple-700"
-                  >
-                    ← Retour à l'équipe
-                  </Button>
-
-                  {content.about.team
-                    .filter((member) => member.id === selectedMember)
-                    .map((member) => (
-                      <div key={member.id} className="grid md:grid-cols-3 gap-8">
-                        <div className="md:col-span-1">
-                          <div className="sticky top-24">
-                            <div className="bg-white/80 backdrop-blur-sm rounded-xl overflow-hidden shadow-xl mb-6">
-                              <Image
-                                src="/placeholder.svg?height=300&width=300"
-                                alt={member.name}
-                                width={300}
-                                height={300}
-                                className="w-full h-auto object-cover"
-                              />
-                            </div>
-
-                            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg">
-                              <h3 className="text-2xl font-bold text-gray-800 mb-1">{member.name}</h3>
-                              <p className="text-purple-600 font-medium mb-4">{member.role}</p>
-
-                              <div className="space-y-4">
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Éducation</p>
-                                  <p className="text-gray-700">{member.education}</p>
-                                </div>
-
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Publications</p>
-                                  <p className="text-gray-700">{member.publications}</p>
-                                </div>
-
-                                <div>
-                                  <p className="text-sm text-gray-500 mb-1">Citations</p>
-                                  <p className="text-gray-700">{member.citations}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="md:col-span-2 space-y-8">
-                          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                            <CardHeader>
-                              <CardTitle>Biographie</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <p className="text-gray-700 leading-relaxed">{member.bio}</p>
-                            </CardContent>
-                          </Card>
-
-                          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                            <CardHeader>
-                              <CardTitle>Domaines d'expertise</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="flex flex-wrap gap-2">
-                                {member.expertise.map((skill, index) => (
-                                  <Badge
-                                    key={index}
-                                    className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-1 text-sm"
-                                  >
-                                    {skill}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </div>
-                    ))}
-                </motion.div>
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <p className="text-red-600">Erreur lors du chargement de l'équipe: {error}</p>
+                </div>
+              ) : members.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">Aucun membre d'équipe trouvé.</p>
+                </div>
               ) : (
                 <motion.div
                   variants={staggerContainer}
@@ -354,43 +194,51 @@ export default function AboutPage() {
                   animate="animate"
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
                 >
-                  {content.about.team.map((member, index) => (
+                  {members.map((member, index) => (
                     <motion.div key={member.id} variants={fadeInUp}>
                       <Card
                         className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col"
-                        onClick={() => setSelectedMember(member.id)}
+                        onClick={() => handleMemberClick(member)}
                       >
                         <div className="relative overflow-hidden">
                           <Image
-                            src="/placeholder.svg?height=300&width=300"
-                            alt={member.name}
+                            src={getProfileImageUrl(member)}
+                            alt={member.full_name}
                             width={300}
                             height={300}
                             className="w-full h-64 object-cover object-center"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                            <div className="p-6 text-white">
-                              <h3 className="text-xl font-bold">{member.name}</h3>
-                              <p className="text-purple-200">{member.role}</p>
-                            </div>
+                                                          <div className="p-6 text-white">
+                                <h3 className="text-xl font-bold">{member.full_name}</h3>
+                                <p className="text-purple-200">
+                                  {member.profile?.institution || "Membre de l'équipe"}
+                                </p>
+                              </div>
                           </div>
                         </div>
-                        <CardContent className="flex-grow flex flex-col">
+                        <CardContent className="flex-grow flex flex-col p-6">
                           <div className="mb-4 flex-grow">
-                            <p className="text-gray-600 line-clamp-3">{member.bio.substring(0, 120)}...</p>
+                            <p className="text-gray-600 line-clamp-3">
+                              {member.profile?.bio || "Aucune biographie disponible."}
+                            </p>
                           </div>
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            {member.expertise.slice(0, 2).map((skill, i) => (
-                              <Badge key={i} variant="outline" className="border-purple-600 text-purple-600">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {member.expertise.length > 2 && (
-                              <Badge variant="outline" className="border-gray-400 text-gray-600">
-                                +{member.expertise.length - 2}
-                              </Badge>
+                          
+                          <div className="space-y-2 mb-4">
+                            {member.profile?.location && (
+                              <div className="flex items-center text-sm text-gray-500">
+                                <MapPin className="h-4 w-4 mr-2" />
+                                {member.profile.location}
+                              </div>
+                            )}
+                            {member.profile?.institution && (
+                              <div className="flex items-center text-sm text-gray-500">
+                                <Building className="h-4 w-4 mr-2" />
+                                {member.profile.institution}
+                              </div>
                             )}
                           </div>
+
                           <Button
                             variant="ghost"
                             className="text-purple-600 hover:text-purple-700 p-0 justify-start group"

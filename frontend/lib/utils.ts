@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 // Get access token from localStorage
 export function getAccessToken() {
-  return typeof window !== 'undefined' ? localStorage.getItem('access') : null;
+  return typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 }
 
 // Make an authenticated API request
@@ -31,7 +31,7 @@ export async function refreshToken() {
   });
   const data = await res.json();
   if (data.access) {
-    localStorage.setItem('access', data.access);
+    localStorage.setItem('token', data.access);
     return data.access;
   }
   return null;
