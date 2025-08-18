@@ -1,4 +1,4 @@
-interface PublicationResponse {
+export interface PublicationResponse {
   id: string;
   title: string;
   abstract: string;
@@ -9,7 +9,7 @@ interface PublicationResponse {
   };
 }
 
-interface CreatePublicationData {
+export interface CreatePublicationData {
   title: string;
   abstract: string;
 }

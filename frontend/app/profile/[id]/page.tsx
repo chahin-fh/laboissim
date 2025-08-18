@@ -24,7 +24,10 @@ import {
   ExternalLink,
 } from "lucide-react"
 import { TeamMember } from "@/lib/team-service"
-import { getPublications, PublicationResponse } from "@/lib/publication-service"
+import { getPublications } from "@/lib/publication-service"
+import { getFileUrl } from "@/lib/file-service"
+
+type PublicationResponse = Awaited<ReturnType<typeof getPublications>> extends (infer T)[] ? T : never
 
 export default function TeamMemberProfilePage() {
   const params = useParams()
@@ -80,10 +83,9 @@ export default function TeamMemberProfilePage() {
   }
 
   const getProfileImageUrl = (member: TeamMember) => {
-    if (member.profile?.profile_image) {
-      return `https://laboissim.onrender.com${member.profile.profile_image}`
-    }
-    return "/placeholder-user.jpg"
+    const img = member.profile?.profile_image
+    if (!img) return "/placeholder-user.jpg"
+    return getFileUrl(img)
   }
 
   const formatDate = (dateString: string) => {
