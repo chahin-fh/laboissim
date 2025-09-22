@@ -99,11 +99,11 @@ WSGI_APPLICATION = 'laboissim.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
-        'NAME': "freedb_Djangotry",
-        'USER': "freedb_Chgame",
-        'PASSWORD': "VaMNQ79%dPJH!$Q",
-        'HOST': "sql.freedb.tech",
-        'PORT': "3306",
+        'NAME': "defaultdb",
+        'USER': "avnadmin",
+        'PASSWORD': "AVNS_Pu-XFTETmZStszSV3kC",
+        'HOST': "mysql-3c3b5822-shynbig-4a67.b.aivencloud.com",
+        'PORT': "17324",
     }
 }
 
