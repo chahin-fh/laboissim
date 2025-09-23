@@ -29,9 +29,23 @@ import {
   UserCheck,
   Mail,
   Send,
+  Calendar,
+  Plus,
+  Clock,
 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { useContentManager, type SiteContent } from "@/lib/content-manager"
+import { 
+  getEvents, 
+  createEvent, 
+  updateEvent, 
+  deleteEvent, 
+  getEventRegistrations,
+  updateRegistrationStatus,
+  type Event,
+  type EventRegistration,
+  type CreateEventData
+} from "@/lib/event-service"
 
 export default function AdminPage() {
   const {
@@ -52,19 +66,83 @@ export default function AdminPage() {
     markMessageAsRead,
     getConversation,
     getUnreadCount,
+    fetchUsers,
   } = useAuth()
   const { content, updateContent } = useContentManager()
+  
+  // All useState hooks must be at the top level
   const [editingContent, setEditingContent] = useState<SiteContent>(content)
   const [activeTab, setActiveTab] = useState("dashboard")
-  const [selectedUser, setSelectedUser] = useState<string | null>(null)
-  const [messageForm, setMessageForm] = useState({ subject: "", message: "" })
+  const [events, setEvents] = useState<Event[]>([])
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [eventForm, setEventForm] = useState<CreateEventData>({
+    title: "",
+    description: "",
+    event_type: "other",
+    location: "",
+    start_date: "",
+    end_date: "",
+    max_participants: undefined,
+  })
+  const [showEventForm, setShowEventForm] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [eventRegistrations, setEventRegistrations] = useState<EventRegistration[]>([])
+  const [unreadInternalMessages, setUnreadInternalMessages] = useState(0)
+  const [userSearchTerm, setUserSearchTerm] = useState("")
+  const [userRoleFilter, setUserRoleFilter] = useState<string>("all")
+  const [userActionLoading, setUserActionLoading] = useState<string | null>(null)
+  const [isFetchingUsers, setIsFetchingUsers] = useState(false)
+  const [lastFetchTime, setLastFetchTime] = useState(0)
+  
   const router = useRouter()
+
+  // Function to refresh users data with debouncing
+  const refreshUsers = async () => {
+    const now = Date.now()
+    const timeSinceLastFetch = now - lastFetchTime
+    
+    // Prevent multiple simultaneous requests and debounce rapid calls
+    if (isFetchingUsers || timeSinceLastFetch < 2000) {
+      console.log("Skipping fetch - too soon or already fetching")
+      return
+    }
+    
+    try {
+      setIsFetchingUsers(true)
+      setLastFetchTime(now)
+      console.log("Manually refreshing users...")
+      await fetchUsers()
+    } catch (error) {
+      console.error('Error refreshing users:', error)
+    } finally {
+      setIsFetchingUsers(false)
+    }
+  }
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "admin")) {
       router.push("/login")
     }
   }, [user, loading, router])
+
+  // Debug: Log users data (commented out to reduce console noise)
+  // useEffect(() => {
+  //   console.log("Users data:", users)
+  //   console.log("Users length:", users.length)
+  // }, [users])
+
+  // Note: Users are automatically fetched by the auth provider after login
+  // No need to manually fetch here to prevent infinite loops
+
+  useEffect(() => {
+    if (user) {
+      getUnreadCount()
+        .then(count => setUnreadInternalMessages(count))
+        .catch(error => console.error('Error fetching unread count:', error))
+      
+      fetchEvents()
+    }
+  }, [user])
 
   if (loading) {
     return null // or a spinner
@@ -74,7 +152,12 @@ export default function AdminPage() {
   }
 
   const handleContentSave = () => {
-    updateContent(editingContent)
+    // Clean up the content before saving - remove logo_image if it's not a File
+    const cleanContent = { ...editingContent }
+    if ((cleanContent as any).logo_image && !((cleanContent as any).logo_image instanceof File)) {
+      delete (cleanContent as any).logo_image
+    }
+    updateContent(cleanContent)
   }
 
   const handleInputChange = (section: keyof SiteContent, field: string, value: string | number) => {
@@ -87,12 +170,153 @@ export default function AdminPage() {
     }))
   }
 
-  const handleSendMessage = () => {
-    if (selectedUser && messageForm.subject && messageForm.message) {
-      sendInternalMessage(selectedUser, messageForm.subject, messageForm.message)
-      setMessageForm({ subject: "", message: "" })
-      setSelectedUser(null)
+  // Event management functions
+  const fetchEvents = async () => {
+    try {
+      const eventsData = await getEvents()
+      setEvents(eventsData)
+    } catch (error) {
+      console.error('Error fetching events:', error)
+      // Show user-friendly error message
+      alert('Erreur lors du chargement des événements. Veuillez réessayer.')
     }
+  }
+
+  const handleCreateEvent = async () => {
+    // Validate form data
+    if (!eventForm.title || !eventForm.description || !eventForm.location || !eventForm.start_date || !eventForm.end_date) {
+      alert('Veuillez remplir tous les champs obligatoires')
+      return
+    }
+    
+    // Validate dates
+    const startDate = new Date(eventForm.start_date)
+    const endDate = new Date(eventForm.end_date)
+    if (endDate <= startDate) {
+      alert('La date de fin doit être après la date de début')
+      return
+    }
+    
+    // Validate max participants
+    if (eventForm.max_participants !== undefined && eventForm.max_participants <= 0) {
+      alert('Le nombre maximum de participants doit être supérieur à 0')
+      return
+    }
+    
+    try {
+      console.log('Creating event with data:', eventForm)
+      await createEvent(eventForm)
+      setEventForm({
+        title: "",
+        description: "",
+        event_type: "other",
+        location: "",
+        start_date: "",
+        end_date: "",
+        max_participants: undefined,
+      })
+      setShowEventForm(false)
+      fetchEvents()
+      alert('Événement créé avec succès!')
+    } catch (error) {
+      console.error('Error creating event:', error)
+      alert(error instanceof Error ? error.message : 'Erreur lors de la création de l\'événement')
+    }
+  }
+
+  const handleUpdateEvent = async () => {
+    if (!selectedEvent) return
+    
+    // Validate form data
+    if (!eventForm.title || !eventForm.description || !eventForm.location || !eventForm.start_date || !eventForm.end_date) {
+      alert('Veuillez remplir tous les champs obligatoires')
+      return
+    }
+    
+    // Validate dates
+    const startDate = new Date(eventForm.start_date)
+    const endDate = new Date(eventForm.end_date)
+    if (endDate <= startDate) {
+      alert('La date de fin doit être après la date de début')
+      return
+    }
+    
+    // Validate max participants
+    if (eventForm.max_participants !== undefined && eventForm.max_participants <= 0) {
+      alert('Le nombre maximum de participants doit être supérieur à 0')
+      return
+    }
+    
+    try {
+      await updateEvent(selectedEvent.id, eventForm)
+      setShowEventForm(false)
+      setSelectedEvent(null)
+      setIsEditing(false)
+      fetchEvents()
+      alert('Événement mis à jour avec succès!')
+    } catch (error) {
+      console.error('Error updating event:', error)
+      alert(error instanceof Error ? error.message : 'Erreur lors de la mise à jour de l\'événement')
+    }
+  }
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) {
+      return
+    }
+    
+    try {
+      await deleteEvent(eventId)
+      fetchEvents()
+      alert('Événement supprimé avec succès!')
+    } catch (error) {
+      console.error('Error deleting event:', error)
+      alert('Erreur lors de la suppression de l\'événement')
+    }
+  }
+
+  const handleEditEvent = (event: Event) => {
+    setSelectedEvent(event)
+    setEventForm({
+      title: event.title,
+      description: event.description,
+      event_type: event.event_type,
+      location: event.location,
+      start_date: formatDateForDisplay(event.start_date),
+      end_date: formatDateForDisplay(event.end_date),
+      max_participants: event.max_participants,
+    })
+    setIsEditing(true)
+    setShowEventForm(true)
+  }
+
+  const fetchEventRegistrations = async (eventId: string) => {
+    try {
+      const registrations = await getEventRegistrations(eventId)
+      setEventRegistrations(registrations)
+    } catch (error) {
+      console.error('Error fetching event registrations:', error)
+      alert('Erreur lors du chargement des inscriptions')
+    }
+  }
+
+  const handleUpdateRegistrationStatus = async (registrationId: string, status: EventRegistration['status']) => {
+    if (!selectedEvent) return
+    try {
+      await updateRegistrationStatus(selectedEvent.id, registrationId, status)
+      fetchEventRegistrations(selectedEvent.id)
+      alert('Statut mis à jour avec succès!')
+    } catch (error) {
+      console.error('Error updating registration status:', error)
+      alert('Erreur lors de la mise à jour du statut')
+    }
+  }
+
+  // Helper function to format dates for display
+  const formatDateForDisplay = (dateString: string): string => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toISOString().slice(0, 16) // Format for datetime-local input
   }
 
   const stats = {
@@ -102,7 +326,7 @@ export default function AdminPage() {
     newMessages: messages.filter((m) => m.status === "new").length,
     pendingRequests: accountRequests.filter((r) => r.status === "pending").length,
     connectedNow: connectedUsers.length,
-    unreadInternalMessages: getUnreadCount(),
+    unreadInternalMessages,
   }
 
   const fadeInUp = {
@@ -150,9 +374,9 @@ export default function AdminPage() {
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Utilisateurs</span>
             </TabsTrigger>
-            <TabsTrigger value="messages" className="flex items-center space-x-2">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Messages</span>
+            <TabsTrigger value="events" className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Événements</span>
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center space-x-2">
               <UserPlus className="h-4 w-4" />
@@ -292,15 +516,157 @@ export default function AdminPage() {
           <TabsContent value="users">
             <Card className="card-professional border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="h-5 w-5 mr-2 text-indigo-600" />
-                  Gestion des utilisateurs
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Users className="h-5 w-5 mr-2 text-indigo-600" />
+                    Gestion des utilisateurs
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-sm">
+                      {users.length} utilisateur{users.length > 1 ? 's' : ''}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={refreshUsers}
+                      className="text-indigo-600 hover:text-indigo-700"
+                      title="Actualiser la liste des utilisateurs"
+                      disabled={isFetchingUsers}
+                    >
+                      {isFetchingUsers ? (
+                        <Activity className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Activity className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Search and Filter Controls */}
+                <div className="mb-6 space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Rechercher un utilisateur par nom ou email..."
+                        value={userSearchTerm}
+                        onChange={(e) => setUserSearchTerm(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Filtrer par rôle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les rôles</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="chef_d_equipe">Chef d'équipe</SelectItem>
+                        <SelectItem value="member">Membre</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setUserSearchTerm("")
+                        setUserRoleFilter("all")
+                      }}
+                      className="whitespace-nowrap"
+                    >
+                      Réinitialiser
+                    </Button>
+                  </div>
+                </div>
+
+                {/* User Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-slate-600">Total</p>
+                        <p className="text-2xl font-bold text-slate-900">{users.length}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-slate-400" />
+                    </div>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-slate-600">Actifs</p>
+                        <p className="text-2xl font-bold text-green-600">{users.filter(u => u.status === "active").length}</p>
+                      </div>
+                      <UserCheck className="h-8 w-8 text-green-400" />
+                    </div>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-slate-600">Bannis</p>
+                        <p className="text-2xl font-bold text-red-600">{users.filter(u => u.status === "banned").length}</p>
+                      </div>
+                      <Ban className="h-8 w-8 text-red-400" />
+                    </div>
+                  </Card>
+                  <Card className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-slate-600">Vérifiés</p>
+                        <p className="text-2xl font-bold text-blue-600">{users.filter(u => u.verified).length}</p>
+                      </div>
+                      <CheckCircle className="h-8 w-8 text-blue-400" />
+                    </div>
+                  </Card>
+                </div>
+                
                 <div className="space-y-4">
-                  {users.map((userItem) => (
-                    <div key={userItem.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                  {(() => {
+                    const filteredUsers = users.filter((userItem) => {
+                      const matchesSearch = userItem.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                                          userItem.email.toLowerCase().includes(userSearchTerm.toLowerCase())
+                      const matchesRole = userRoleFilter === "all" || userItem.role === userRoleFilter
+                      return matchesSearch && matchesRole
+                    })
+                    
+                    if (filteredUsers.length === 0) {
+                      if (users.length === 0) {
+                        return (
+                          <div className="text-center py-8 text-gray-500">
+                            <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                            <p>Aucun utilisateur dans le système</p>
+                            <p className="text-sm">Les utilisateurs apparaîtront ici une fois qu'ils se seront inscrits</p>
+                            <Button 
+                              onClick={refreshUsers} 
+                              variant="outline" 
+                              className="mt-4"
+                            >
+                              <Activity className="h-4 w-4 mr-2" />
+                              Actualiser
+                            </Button>
+                          </div>
+                        )
+                      } else {
+                        return (
+                          <div className="text-center py-8 text-gray-500">
+                            <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                            <p>Aucun utilisateur trouvé</p>
+                            <p className="text-sm">Essayez de modifier vos critères de recherche</p>
+                            <Button 
+                              onClick={() => {
+                                setUserSearchTerm("")
+                                setUserRoleFilter("all")
+                              }} 
+                              variant="outline" 
+                              className="mt-4"
+                            >
+                              Réinitialiser les filtres
+                            </Button>
+                          </div>
+                        )
+                      }
+                    }
+                    
+                    return filteredUsers.map((userItem) => (
+                      <div key={userItem.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                       <div className="flex items-center space-x-4">
                         <div
                           className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -319,10 +685,12 @@ export default function AdminPage() {
                               className={
                                 userItem.role === "admin"
                                   ? "bg-purple-100 text-purple-700"
+                                  : userItem.role === "chef_d_equipe"
+                                  ? "bg-orange-100 text-orange-700"
                                   : "bg-blue-100 text-blue-700"
                               }
                             >
-                              {userItem.role === "admin" ? "Admin" : "Membre"}
+                              {userItem.role === "admin" ? "Admin" : userItem.role === "chef_d_equipe" ? "Chef d'équipe" : "Membre"}
                             </Badge>
                             <Badge
                               className={
@@ -338,26 +706,46 @@ export default function AdminPage() {
                               </Badge>
                             )}
                           </div>
+                          <div className="flex items-center space-x-4 mt-2 text-xs text-slate-500">
+                            <div className="flex items-center">
+                              <Clock className="h-3 w-3 mr-1" />
+                              Inscrit le {new Date(userItem.date_joined).toLocaleDateString('fr-FR')}
+                            </div>
+                            {userItem.lastLogin && (
+                              <div className="flex items-center">
+                                <Activity className="h-3 w-3 mr-1" />
+                                Dernière connexion: {new Date(userItem.lastLogin).toLocaleDateString('fr-FR')}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedUser(userItem.id)}
-                          className="border-blue-300 text-blue-600 hover:bg-blue-50"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </Button>
                         <Select
                           value={userItem.role}
-                          onValueChange={(role: "member" | "admin") => updateUserRole(userItem.id, role)}
+                          onValueChange={async (role: "member" | "admin" | "chef_d_equipe") => {
+                            if (confirm(`Êtes-vous sûr de vouloir changer le rôle de ${userItem.name} vers ${role === 'admin' ? 'Admin' : role === 'chef_d_equipe' ? 'Chef d\'équipe' : 'Membre'} ?`)) {
+                              setUserActionLoading(`role-${userItem.id}`)
+                              try {
+                                await updateUserRole(userItem.id, role)
+                                // Refresh users data
+                                await fetchUsers()
+                              } catch (error) {
+                                console.error('Error updating user role:', error)
+                                alert('Erreur lors de la mise à jour du rôle')
+                              } finally {
+                                setUserActionLoading(null)
+                              }
+                            }
+                          }}
+                          disabled={userActionLoading === `role-${userItem.id}`}
                         >
                           <SelectTrigger className="w-32">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="member">Membre</SelectItem>
+                            <SelectItem value="chef_d_equipe">Chef d'équipe</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
                           </SelectContent>
                         </Select>
@@ -365,79 +753,289 @@ export default function AdminPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => banUser(userItem.id)}
+                            onClick={async () => {
+                              if (confirm(`Êtes-vous sûr de vouloir bannir ${userItem.name} ?`)) {
+                                setUserActionLoading(`ban-${userItem.id}`)
+                                try {
+                                  await banUser(userItem.id)
+                                  // Refresh users data
+                                  await fetchUsers()
+                                } catch (error) {
+                                  console.error('Error banning user:', error)
+                                  alert('Erreur lors du bannissement de l\'utilisateur')
+                                } finally {
+                                  setUserActionLoading(null)
+                                }
+                              }
+                            }}
                             className="border-red-300 text-red-600 hover:bg-red-50"
+                            title="Bannir l'utilisateur"
+                            disabled={userActionLoading === `ban-${userItem.id}`}
                           >
-                            <Ban className="h-4 w-4" />
+                            {userActionLoading === `ban-${userItem.id}` ? (
+                              <Activity className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Ban className="h-4 w-4" />
+                            )}
                           </Button>
                         ) : (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => unbanUser(userItem.id)}
+                            onClick={async () => {
+                              if (confirm(`Êtes-vous sûr de vouloir débannir ${userItem.name} ?`)) {
+                                setUserActionLoading(`unban-${userItem.id}`)
+                                try {
+                                  await unbanUser(userItem.id)
+                                  // Refresh users data
+                                  await fetchUsers()
+                                } catch (error) {
+                                  console.error('Error unbanning user:', error)
+                                  alert('Erreur lors du débannissement de l\'utilisateur')
+                                } finally {
+                                  setUserActionLoading(null)
+                                }
+                              }
+                            }}
                             className="border-green-300 text-green-600 hover:bg-green-50"
+                            title="Débannir l'utilisateur"
+                            disabled={userActionLoading === `unban-${userItem.id}`}
                           >
-                            <UserCheck className="h-4 w-4" />
+                            {userActionLoading === `unban-${userItem.id}` ? (
+                              <Activity className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <UserCheck className="h-4 w-4" />
+                            )}
                           </Button>
                         )}
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => deleteUser(userItem.id)}
+                          onClick={async () => {
+                            if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement ${userItem.name} ? Cette action est irréversible.`)) {
+                              setUserActionLoading(`delete-${userItem.id}`)
+                              try {
+                                await deleteUser(userItem.id)
+                                // Refresh users data
+                                await fetchUsers()
+                              } catch (error) {
+                                console.error('Error deleting user:', error)
+                                alert('Erreur lors de la suppression de l\'utilisateur')
+                              } finally {
+                                setUserActionLoading(null)
+                              }
+                            }
+                          }}
                           className="border-red-300 text-red-600 hover:bg-red-50"
+                          title="Supprimer définitivement l'utilisateur"
+                          disabled={userActionLoading === `delete-${userItem.id}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {userActionLoading === `delete-${userItem.id}` ? (
+                            <Activity className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
+                    ))
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
+
+
+          </TabsContent>
+
+          {/* Events Tab */}
+          <TabsContent value="events">
+            <Card className="card-professional border-0 shadow-lg">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <Calendar className="h-5 w-5 mr-2 text-green-600" />
+                    Gestion des Événements
+                  </CardTitle>
+                  <Button onClick={() => setShowEventForm(true)} className="btn-modern text-white">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nouvel Événement
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {events.map((event) => (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-slate-50 rounded-lg border"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h4 className="font-medium text-slate-800">{event.title}</h4>
+                            <Badge className="bg-green-100 text-green-700">{event.event_type}</Badge>
+                            {!event.is_active && <Badge className="bg-red-100 text-red-700">Inactif</Badge>}
+                          </div>
+                          <p className="text-sm text-slate-600 mb-2">{event.description}</p>
+                          <div className="flex items-center space-x-4 text-sm text-slate-500">
+                            <span>📍 {event.location}</span>
+                            <span>📅 {new Date(event.start_date).toLocaleDateString()}</span>
+                            <span>👥 {event.registered_count} inscrits</span>
+                            {event.max_participants && (
+                              <span>/ {event.max_participants} max</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedEvent(event)
+                              fetchEventRegistrations(event.id)
+                            }}
+                            className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                          >
+                            <Users className="h-4 w-4 mr-1" />
+                            Inscrits
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditEvent(event)}
+                            className="border-amber-300 text-amber-600 hover:bg-amber-50"
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Modifier
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteEvent(event.id)}
+                            className="border-red-300 text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Supprimer
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
                   ))}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Message Modal */}
-            {selectedUser && (
+            {/* Event Form Modal */}
+            {showEventForm && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-                onClick={() => setSelectedUser(null)}
+                onClick={() => setShowEventForm(false)}
               >
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="bg-white rounded-xl p-6 w-full max-w-md"
+                  className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <h3 className="text-xl font-bold mb-4">
-                    Envoyer un message à {users.find((u) => u.id === selectedUser)?.name}
+                    {isEditing ? 'Modifier l\'événement' : 'Nouvel événement'}
                   </h3>
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="subject">Sujet</Label>
-                      <Input
-                        id="subject"
-                        value={messageForm.subject}
-                        onChange={(e) => setMessageForm((prev) => ({ ...prev, subject: e.target.value }))}
-                        placeholder="Sujet du message"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="title">Titre</Label>
+                        <Input
+                          id="title"
+                          value={eventForm.title}
+                          onChange={(e) => setEventForm(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="Titre de l'événement"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="event_type">Type d'événement</Label>
+                        <Select value={eventForm.event_type} onValueChange={(value) => setEventForm(prev => ({ ...prev, event_type: value as any }))}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="conference">Conférence</SelectItem>
+                            <SelectItem value="seminar">Séminaire</SelectItem>
+                            <SelectItem value="workshop">Atelier</SelectItem>
+                            <SelectItem value="meeting">Réunion</SelectItem>
+                            <SelectItem value="presentation">Présentation</SelectItem>
+                            <SelectItem value="other">Autre</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div>
-                      <Label htmlFor="message">Message</Label>
+                      <Label htmlFor="description">Description</Label>
                       <Textarea
-                        id="message"
-                        value={messageForm.message}
-                        onChange={(e) => setMessageForm((prev) => ({ ...prev, message: e.target.value }))}
-                        placeholder="Votre message..."
-                        rows={4}
+                        id="description"
+                        value={eventForm.description}
+                        onChange={(e) => setEventForm(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Description de l'événement"
+                        rows={3}
                       />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="location">Lieu</Label>
+                        <Input
+                          id="location"
+                          value={eventForm.location}
+                          onChange={(e) => setEventForm(prev => ({ ...prev, location: e.target.value }))}
+                          placeholder="Lieu de l'événement"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="max_participants">Nombre max de participants</Label>
+                        <Input
+                          id="max_participants"
+                          type="number"
+                          value={eventForm.max_participants || ''}
+                          onChange={(e) => setEventForm(prev => ({ ...prev, max_participants: e.target.value ? parseInt(e.target.value) : undefined }))}
+                          placeholder="Illimité si vide"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="start_date">Date et heure de début</Label>
+                        <Input
+                          id="start_date"
+                          type="datetime-local"
+                          value={eventForm.start_date}
+                          onChange={(e) => setEventForm(prev => ({ ...prev, start_date: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="end_date">Date et heure de fin</Label>
+                        <Input
+                          id="end_date"
+                          type="datetime-local"
+                          value={eventForm.end_date}
+                          onChange={(e) => setEventForm(prev => ({ ...prev, end_date: e.target.value }))}
+                        />
+                      </div>
                     </div>
                     <div className="flex space-x-2">
-                      <Button onClick={handleSendMessage} className="btn-modern text-white flex-1">
-                        <Send className="h-4 w-4 mr-2" />
-                        Envoyer
+                      <Button 
+                        onClick={isEditing ? handleUpdateEvent : handleCreateEvent} 
+                        className="btn-modern text-white flex-1"
+                        disabled={!eventForm.title || !eventForm.description || !eventForm.location || !eventForm.start_date || !eventForm.end_date}
+                      >
+                        {isEditing ? 'Mettre à jour' : 'Créer'}
                       </Button>
-                      <Button variant="outline" onClick={() => setSelectedUser(null)}>
+                      <Button variant="outline" onClick={() => {
+                        setShowEventForm(false)
+                        setIsEditing(false)
+                        setSelectedEvent(null)
+                      }}>
                         Annuler
                       </Button>
                     </div>
@@ -445,67 +1043,78 @@ export default function AdminPage() {
                 </motion.div>
               </motion.div>
             )}
-          </TabsContent>
 
-          {/* Messages Tab */}
-          <TabsContent value="messages">
-            <Card className="card-professional border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MessageSquare className="h-5 w-5 mr-2 text-indigo-600" />
-                  Messages reçus
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {messages.map((message) => (
-                    <div key={message.id} className="p-4 bg-slate-50 rounded-lg">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h4 className="font-medium text-slate-800">{message.name}</h4>
-                          <p className="text-sm text-slate-600">{message.email}</p>
-                          <p className="text-sm text-slate-500">{new Date(message.createdAt).toLocaleString()}</p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge
-                            className={
-                              message.status === "new" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"
-                            }
-                          >
-                            {message.status === "new" ? "Nouveau" : message.status === "read" ? "Lu" : "Répondu"}
-                          </Badge>
-                          <Badge variant="outline">{message.category}</Badge>
+            {/* Event Registrations Modal */}
+            {selectedEvent && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                onClick={() => setSelectedEvent(null)}
+              >
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h3 className="text-xl font-bold mb-4">
+                    Inscrits à "{selectedEvent.title}"
+                  </h3>
+                  <div className="space-y-4">
+                    {eventRegistrations.map((registration) => (
+                      <div key={registration.id} className="p-4 bg-slate-50 rounded-lg border">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium text-slate-800">{registration.user_full_name}</h4>
+                            <p className="text-sm text-slate-600">{registration.user_email}</p>
+                            <p className="text-sm text-slate-500">
+                              Inscrit le {new Date(registration.registration_date).toLocaleDateString()}
+                            </p>
+                            {registration.notes && (
+                              <p className="text-sm text-slate-700 mt-2">{registration.notes}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge
+                              className={
+                                registration.status === "confirmed" ? "bg-green-100 text-green-700" :
+                                registration.status === "pending" ? "bg-amber-100 text-amber-700" :
+                                "bg-red-100 text-red-700"
+                              }
+                            >
+                              {registration.status === "confirmed" ? "Confirmé" :
+                               registration.status === "pending" ? "En attente" : "Annulé"}
+                            </Badge>
+                            <Select
+                              value={registration.status}
+                              onValueChange={(status) => handleUpdateRegistrationStatus(registration.id, status as any)}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">En attente</SelectItem>
+                                <SelectItem value="confirmed">Confirmé</SelectItem>
+                                <SelectItem value="cancelled">Annulé</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
-                      <h5 className="font-medium text-slate-800 mb-2">{message.subject}</h5>
-                      <p className="text-slate-700 mb-4">{message.message}</p>
-                      <div className="flex items-center space-x-2">
-                        {message.status === "new" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateMessageStatus(message.id, "read")}
-                            className="border-blue-300 text-blue-600 hover:bg-blue-50"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Marquer comme lu
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateMessageStatus(message.id, "replied")}
-                          className="border-green-300 text-green-600 hover:bg-green-50"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Marquer comme répondu
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                    {eventRegistrations.length === 0 && (
+                      <p className="text-center text-slate-500 py-8">Aucun inscrit pour le moment</p>
+                    )}
+                  </div>
+                  <div className="mt-6">
+                    <Button variant="outline" onClick={() => setSelectedEvent(null)}>
+                      Fermer
+                    </Button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
           </TabsContent>
 
           {/* Account Requests Tab */}
@@ -548,7 +1157,13 @@ export default function AdminPage() {
                         <div className="flex items-center space-x-2">
                           <Button
                             size="sm"
-                            onClick={() => updateAccountRequest(request.id, "approved")}
+                            onClick={async () => {
+                              try {
+                                await updateAccountRequest(request.id, "approved")
+                              } catch (error) {
+                                console.error('Error updating account request:', error)
+                              }
+                            }}
                             className="bg-green-600 hover:bg-green-700 text-white"
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
@@ -557,7 +1172,13 @@ export default function AdminPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => updateAccountRequest(request.id, "rejected")}
+                            onClick={async () => {
+                              try {
+                                await updateAccountRequest(request.id, "rejected")
+                              } catch (error) {
+                                console.error('Error updating account request:', error)
+                              }
+                            }}
                             className="border-red-300 text-red-600 hover:bg-red-50"
                           >
                             <XCircle className="h-4 w-4 mr-1" />
@@ -651,13 +1272,15 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="hero" className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-6">
+                  <TabsList className="grid w-full grid-cols-8">
                     <TabsTrigger value="hero">Accueil</TabsTrigger>
+                    <TabsTrigger value="branding">Branding</TabsTrigger>
+                    <TabsTrigger value="navigation">Navigation</TabsTrigger>
                     <TabsTrigger value="stats">Stats</TabsTrigger>
                     <TabsTrigger value="about">À propos</TabsTrigger>
-                    <TabsTrigger value="team">Équipe</TabsTrigger>
-                    <TabsTrigger value="expertise">Expertise</TabsTrigger>
+                    <TabsTrigger value="sections">Sections</TabsTrigger>
                     <TabsTrigger value="contact">Contact</TabsTrigger>
+                    <TabsTrigger value="meta">SEO</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="hero" className="space-y-4">
@@ -690,6 +1313,219 @@ export default function AdminPage() {
                         className="mt-1"
                         rows={3}
                       />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="branding" className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="lab-name">Nom du laboratoire</Label>
+                        <Input
+                          id="lab-name"
+                          value={editingContent.about.teamName}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            about: { ...prev.about, teamName: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="logo-text">Texte du logo</Label>
+                        <Input
+                          id="logo-text"
+                          value={editingContent.logo.text}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            logo: { ...prev.logo, text: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="logo-subtitle">Sous-titre du logo</Label>
+                        <Input
+                          id="logo-subtitle"
+                          value={editingContent.logo.subtitle}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            logo: { ...prev.logo, subtitle: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="logo-upload">Logo (image)</Label>
+                        {editingContent.logo.imageUrl && (
+                          <div className="mb-2">
+                            <img 
+                              src={editingContent.logo.imageUrl} 
+                              alt="Current logo" 
+                              className="h-16 w-auto object-contain border rounded"
+                              onError={(e) => {
+                                console.log('Logo image failed to load:', editingContent.logo.imageUrl)
+                                e.currentTarget.style.display = 'none'
+                              }}
+                            />
+                          </div>
+                        )}
+                        <Input
+                          id="logo-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              // Store file for upload
+                              setEditingContent(prev => ({ 
+                                ...prev, 
+                                logo: { ...prev.logo },
+                                logo_image: file 
+                              } as any))
+                            }
+                          }}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="navigation" className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="nav-home">Accueil</Label>
+                        <Input
+                          id="nav-home"
+                          value={editingContent.navigation.home}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, home: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nav-about">À propos</Label>
+                        <Input
+                          id="nav-about"
+                          value={editingContent.navigation.about}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, about: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nav-projects">Projets</Label>
+                        <Input
+                          id="nav-projects"
+                          value={editingContent.navigation.projects}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, projects: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nav-publications">Publications</Label>
+                        <Input
+                          id="nav-publications"
+                          value={editingContent.navigation.publications}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, publications: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nav-events">Événements</Label>
+                        <Input
+                          id="nav-events"
+                          value={editingContent.navigation.events}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, events: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nav-contact">Contact</Label>
+                        <Input
+                          id="nav-contact"
+                          value={editingContent.navigation.contact}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, contact: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nav-login">Connexion</Label>
+                        <Input
+                          id="nav-login"
+                          value={editingContent.navigation.login}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, login: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nav-register">S'inscrire</Label>
+                        <Input
+                          id="nav-register"
+                          value={editingContent.navigation.register}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, register: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nav-dashboard">Tableau de bord</Label>
+                        <Input
+                          id="nav-dashboard"
+                          value={editingContent.navigation.dashboard}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, dashboard: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nav-profile">Profil</Label>
+                        <Input
+                          id="nav-profile"
+                          value={editingContent.navigation.profile}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, profile: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nav-logout">Déconnexion</Label>
+                        <Input
+                          id="nav-logout"
+                          value={editingContent.navigation.logout}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            navigation: { ...prev.navigation, logout: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
                     </div>
                   </TabsContent>
 
@@ -736,9 +1572,111 @@ export default function AdminPage() {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <Label htmlFor="researchers-label">Label Chercheurs</Label>
+                        <Input
+                          id="researchers-label"
+                          value={editingContent.stats.researchersLabel}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            stats: { ...prev.stats, researchersLabel: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="publications-label">Label Publications</Label>
+                        <Input
+                          id="publications-label"
+                          value={editingContent.stats.publicationsLabel}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            stats: { ...prev.stats, publicationsLabel: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="awards-label">Label Prix</Label>
+                        <Input
+                          id="awards-label"
+                          value={editingContent.stats.awardsLabel}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            stats: { ...prev.stats, awardsLabel: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="events-label">Label Événements</Label>
+                        <Input
+                          id="events-label"
+                          value={editingContent.stats.eventsLabel}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            stats: { ...prev.stats, eventsLabel: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="about" className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="about-title">Titre de la section</Label>
+                        <Input
+                          id="about-title"
+                          value={editingContent.about.title}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            about: { ...prev.about, title: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="about-subtitle">Sous-titre</Label>
+                        <Input
+                          id="about-subtitle"
+                          value={editingContent.about.subtitle}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            about: { ...prev.about, subtitle: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="about-description">Description</Label>
+                      <Textarea
+                        id="about-description"
+                        value={editingContent.about.description}
+                        onChange={(e) => setEditingContent(prev => ({
+                          ...prev,
+                          about: { ...prev.about, description: e.target.value },
+                        }))}
+                        className="mt-1"
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="about-mission">Mission</Label>
+                      <Textarea
+                        id="about-mission"
+                        value={editingContent.about.mission}
+                        onChange={(e) => setEditingContent(prev => ({
+                          ...prev,
+                          about: { ...prev.about, mission: e.target.value },
+                        }))}
+                        className="mt-1"
+                        rows={3}
+                      />
+                    </div>
                     <div>
                       <Label htmlFor="history-title">Titre de l'histoire</Label>
                       <Input
@@ -1025,8 +1963,240 @@ export default function AdminPage() {
                     </div>
                   </TabsContent>
 
+                  <TabsContent value="sections" className="space-y-6">
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">Section Projets</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="projects-title">Titre</Label>
+                            <Input
+                              id="projects-title"
+                              value={editingContent.projects.title}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                projects: { ...prev.projects, title: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="projects-subtitle">Sous-titre</Label>
+                            <Input
+                              id="projects-subtitle"
+                              value={editingContent.projects.subtitle}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                projects: { ...prev.projects, subtitle: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="projects-view-all">Bouton "Voir tout"</Label>
+                            <Input
+                              id="projects-view-all"
+                              value={editingContent.projects.viewAll}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                projects: { ...prev.projects, viewAll: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">Section Publications</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="publications-title">Titre</Label>
+                            <Input
+                              id="publications-title"
+                              value={editingContent.publications.title}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                publications: { ...prev.publications, title: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="publications-subtitle">Sous-titre</Label>
+                            <Input
+                              id="publications-subtitle"
+                              value={editingContent.publications.subtitle}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                publications: { ...prev.publications, subtitle: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="publications-view-all">Bouton "Voir tout"</Label>
+                            <Input
+                              id="publications-view-all"
+                              value={editingContent.publications.viewAll}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                publications: { ...prev.publications, viewAll: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">Section Événements</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="events-title">Titre</Label>
+                            <Input
+                              id="events-title"
+                              value={editingContent.events.title}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                events: { ...prev.events, title: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="events-subtitle">Sous-titre</Label>
+                            <Input
+                              id="events-subtitle"
+                              value={editingContent.events.subtitle}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                events: { ...prev.events, subtitle: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="events-view-all">Bouton "Voir tout"</Label>
+                            <Input
+                              id="events-view-all"
+                              value={editingContent.events.viewAll}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                events: { ...prev.events, viewAll: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">Titres des pages</h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="page-title-home">Accueil</Label>
+                            <Input
+                              id="page-title-home"
+                              value={editingContent.pageTitles.home}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                pageTitles: { ...prev.pageTitles, home: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="page-title-about">À propos</Label>
+                            <Input
+                              id="page-title-about"
+                              value={editingContent.pageTitles.about}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                pageTitles: { ...prev.pageTitles, about: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="page-title-projects">Projets</Label>
+                            <Input
+                              id="page-title-projects"
+                              value={editingContent.pageTitles.projects}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                pageTitles: { ...prev.pageTitles, projects: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="page-title-publications">Publications</Label>
+                            <Input
+                              id="page-title-publications"
+                              value={editingContent.pageTitles.publications}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                pageTitles: { ...prev.pageTitles, publications: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="page-title-events">Événements</Label>
+                            <Input
+                              id="page-title-events"
+                              value={editingContent.pageTitles.events}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                pageTitles: { ...prev.pageTitles, events: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="page-title-contact">Contact</Label>
+                            <Input
+                              id="page-title-contact"
+                              value={editingContent.pageTitles.contact}
+                              onChange={(e) => setEditingContent(prev => ({
+                                ...prev,
+                                pageTitles: { ...prev.pageTitles, contact: e.target.value },
+                              }))}
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
                   <TabsContent value="contact" className="space-y-4">
                     <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="contact-title">Titre de la section</Label>
+                        <Input
+                          id="contact-title"
+                          value={editingContent.contact.title}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            contact: { ...prev.contact, title: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="contact-subtitle">Sous-titre</Label>
+                        <Input
+                          id="contact-subtitle"
+                          value={editingContent.contact.subtitle}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            contact: { ...prev.contact, subtitle: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
                       <div>
                         <Label htmlFor="contact-email">Email</Label>
                         <Input
@@ -1064,80 +2234,237 @@ export default function AdminPage() {
                           className="mt-1"
                         />
                       </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="research-team-name">Research Team name</Label>
+                        <Label htmlFor="contact-form-name">Label Nom</Label>
                         <Input
-                          type="text"
-                          id="research-team-name"
-                          value={editingContent.footer?.teamName || ''}
-                          onChange={e => setEditingContent(prev => ({
+                          id="contact-form-name"
+                          value={editingContent.contact.formName}
+                          onChange={(e) => setEditingContent(prev => ({
                             ...prev,
-                            footer: {
-                              ...prev.footer,
-                              teamName: e.target.value
-                            }
+                            contact: { ...prev.contact, formName: e.target.value },
                           }))}
                           className="mt-1"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="research-team-intro">Research Team introduction</Label>
-                        <Textarea
-                          id="research-team-intro"
-                          value={editingContent.footer?.teamIntroduction || ''}
+                        <Label htmlFor="contact-form-email">Label Email</Label>
+                        <Input
+                          id="contact-form-email"
+                          value={editingContent.contact.formEmail}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            contact: { ...prev.contact, formEmail: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="contact-form-subject">Label Sujet</Label>
+                        <Input
+                          id="contact-form-subject"
+                          value={editingContent.contact.formSubject}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            contact: { ...prev.contact, formSubject: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="contact-form-message">Label Message</Label>
+                        <Input
+                          id="contact-form-message"
+                          value={editingContent.contact.formMessage}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            contact: { ...prev.contact, formMessage: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="contact-form-send">Bouton Envoyer</Label>
+                        <Input
+                          id="contact-form-send"
+                          value={editingContent.contact.formSend}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            contact: { ...prev.contact, formSend: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-8">
+                      <h3 className="text-lg font-semibold mb-4">Footer</h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="footer-about-title">Titre À propos</Label>
+                          <Input
+                            id="footer-about-title"
+                            value={editingContent.footer.aboutTitle}
+                            onChange={(e) => setEditingContent(prev => ({
+                              ...prev,
+                              footer: { ...prev.footer, aboutTitle: e.target.value },
+                            }))}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="footer-quick-links-title">Titre Liens rapides</Label>
+                          <Input
+                            id="footer-quick-links-title"
+                            value={editingContent.footer.quickLinksTitle}
+                            onChange={(e) => setEditingContent(prev => ({
+                              ...prev,
+                              footer: { ...prev.footer, quickLinksTitle: e.target.value },
+                            }))}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="footer-contact-title">Titre Contact</Label>
+                          <Input
+                            id="footer-contact-title"
+                            value={editingContent.footer.contactTitle}
+                            onChange={(e) => setEditingContent(prev => ({
+                              ...prev,
+                              footer: { ...prev.footer, contactTitle: e.target.value },
+                            }))}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="footer-follow-us">Suivez-nous</Label>
+                          <Input
+                            id="footer-follow-us"
+                            value={editingContent.footer.followUs}
+                            onChange={(e) => setEditingContent(prev => ({
+                              ...prev,
+                              footer: { ...prev.footer, followUs: e.target.value },
+                            }))}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="research-team-name">Nom de l'équipe</Label>
+                          <Input
+                            type="text"
+                            id="research-team-name"
+                            value={editingContent.footer?.teamName || ''}
+                            onChange={e => setEditingContent(prev => ({
+                              ...prev,
+                              footer: {
+                                ...prev.footer,
+                                teamName: e.target.value
+                              }
+                            }))}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="research-team-intro">Introduction équipe</Label>
+                          <Textarea
+                            id="research-team-intro"
+                            value={editingContent.footer?.teamIntroduction || ''}
+                            onChange={e => setEditingContent(prev => ({
+                              ...prev,
+                              footer: {
+                                ...prev.footer,
+                                teamIntroduction: e.target.value
+                              }
+                            }))}
+                            className="mt-1"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                      {/* Domaines de Recherche Section */}
+                      <div className="mt-8">
+                        <h3 className="text-lg font-semibold mb-4">Domaines de Recherche</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {[1,2,3,4,5].map((num, idx) => (
+                            <div key={num} className="flex flex-col">
+                              <Label className="mb-1">{num}</Label>
+                              <Input
+                                type="text"
+                                value={editingContent.footer?.researchDomains?.[idx] || ''}
+                                onChange={e => {
+                                  const newDomains = editingContent.footer?.researchDomains ? [...editingContent.footer.researchDomains] : ["", "", "", "", ""];
+                                  newDomains[idx] = e.target.value;
+                                  setEditingContent(prev => ({
+                                    ...prev,
+                                    footer: {
+                                      ...prev.footer,
+                                      researchDomains: newDomains
+                                    }
+                                  }))
+                                }}
+                                placeholder={`Domaine de recherche ${num}`}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mt-8">
+                        <Label htmlFor="footer-copyright">Copyright</Label>
+                        <Input
+                          id="footer-copyright"
+                          type="text"
+                          value={editingContent.footer?.copyright || ''}
                           onChange={e => setEditingContent(prev => ({
                             ...prev,
                             footer: {
                               ...prev.footer,
-                              teamIntroduction: e.target.value
+                              copyright: e.target.value
                             }
                           }))}
                           className="mt-1"
-                          rows={2}
                         />
                       </div>
                     </div>
-                    {/* Domaines de Recherche Section */}
-                    <div className="mt-8">
-                      <h3 className="text-lg font-semibold mb-4">Domaines de Recherche</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {[1,2,3,4,5].map((num, idx) => (
-                          <div key={num} className="flex flex-col">
-                            <Label className="mb-1">{num}</Label>
-                            <Input
-                              type="text"
-                              value={editingContent.footer?.researchDomains?.[idx] || ''}
-                              onChange={e => {
-                                const newDomains = editingContent.footer?.researchDomains ? [...editingContent.footer.researchDomains] : ["", "", "", "", ""];
-                                newDomains[idx] = e.target.value;
-                                setEditingContent(prev => ({
-                                  ...prev,
-                                  footer: {
-                                    ...prev.footer,
-                                    researchDomains: newDomains
-                                  }
-                                }))
-                              }}
-                              placeholder={`Domaine de recherche ${num}`}
-                            />
-                          </div>
-                        ))}
+                  </TabsContent>
+
+                  <TabsContent value="meta" className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="site-title">Titre du site</Label>
+                        <Input
+                          id="site-title"
+                          value={editingContent.meta.siteTitle}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            meta: { ...prev.meta, siteTitle: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="site-keywords">Mots-clés</Label>
+                        <Input
+                          id="site-keywords"
+                          value={editingContent.meta.siteKeywords}
+                          onChange={(e) => setEditingContent(prev => ({
+                            ...prev,
+                            meta: { ...prev.meta, siteKeywords: e.target.value },
+                          }))}
+                          className="mt-1"
+                        />
                       </div>
                     </div>
-                    <div className="mt-8">
-                      <Label htmlFor="footer-copyright">Copyright</Label>
-                      <Input
-                        id="footer-copyright"
-                        type="text"
-                        value={editingContent.footer?.copyright || ''}
-                        onChange={e => setEditingContent(prev => ({
+                    <div>
+                      <Label htmlFor="site-description">Description du site</Label>
+                      <Textarea
+                        id="site-description"
+                        value={editingContent.meta.siteDescription}
+                        onChange={(e) => setEditingContent(prev => ({
                           ...prev,
-                          footer: {
-                            ...prev.footer,
-                            copyright: e.target.value
-                          }
+                          meta: { ...prev.meta, siteDescription: e.target.value },
                         }))}
                         className="mt-1"
+                        rows={3}
                       />
                     </div>
                   </TabsContent>
