@@ -11,12 +11,12 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { uploadFile, getUserFiles, deleteFile, formatFileSize } from "@/lib/file-service"
 import { createPublication, getPublications, deletePublication } from "@/lib/publication-service"
-import { PublicationEditModal } from "@/components/publication-edit-modal"
-import {PublicationDetailModal} from "@/components/publication-detail-modal"
+import { PublicationEditModal } from "../../components/publication-edit-modal"
 import { getEvents } from "@/lib/event-service"
 import { RecentDocuments } from "@/components/recent-documents"
 import { RecentPublications } from "@/components/recent-publications"
 import { PublicationForm } from "@/components/publication-form"
+import PublicationDetailModal from "../../components/publication-detail-modal"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -1509,12 +1509,11 @@ export default function DashboardPage() {
                           />
                         </div>
 
-                        <RecentPublications 
-                          publications={publications} 
-                          currentUserId={user.id}
-                          onPublicationDelete={(publicationId) => setPublications(pubs => pubs.filter(p => p.id !== publicationId))}
-                          onPublicationEdit={handlePublicationEdit}
-                        />
+                    <RecentPublications 
+                      publications={publications} 
+                      currentUserId={user.id}
+                      onPublicationDelete={(publicationId) => setPublications(pubs => pubs.filter(p => p.id !== publicationId))}
+                    />
                       </div>
                     </CardContent>
                   </Card>
