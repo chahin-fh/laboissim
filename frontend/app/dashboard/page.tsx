@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { uploadFile, getUserFiles, deleteFile, formatFileSize } from "@/lib/file-service"
 import { createPublication, getPublications, deletePublication } from "@/lib/publication-service"
+import { PublicationEditModal } from "@/components/publication-edit-modal"
+import PublicationDetailModal from "@/components/publication-detail-modal"
 import { getEvents } from "@/lib/event-service"
 import { RecentDocuments } from "@/components/recent-documents"
 import { RecentPublications } from "@/components/recent-publications"
@@ -137,6 +140,10 @@ export default function DashboardPage() {
   const [publications, setPublications] = useState<PublicationResponse[]>([])
   const [conversations, setConversations] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [selectedPublicationForEdit, setSelectedPublicationForEdit] = useState<PublicationResponse | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [selectedPublicationForDetail, setSelectedPublicationForDetail] = useState<PublicationResponse | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [selectedConversationMessages, setSelectedConversationMessages] = useState<any[]>([])
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
@@ -256,6 +263,27 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error refreshing publications:', error)
     }
+  }
+
+  const handlePublicationEdit = (publication: PublicationResponse) => {
+    setSelectedPublicationForEdit(publication)
+    setIsEditModalOpen(true)
+  }
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false)
+    setSelectedPublicationForEdit(null)
+  }
+
+  const handleEditSuccess = async () => {
+    try {
+      const updatedPublications = await getPublications()
+      setPublications(updatedPublications)
+    } catch (error) {
+      console.error('Error refreshing publications:', error)
+    }
+    setIsEditModalOpen(false)
+    setSelectedPublicationForEdit(null)
   }
 
   if (loading) {
@@ -412,6 +440,38 @@ export default function DashboardPage() {
     animate: { opacity: 1, y: 0 },
     transition: { duration: 0.6 },
   }
+
+  // Home feed helpers
+  const canEditProject = (project: any) => {
+    if (user.role === "admin") return true
+    if (user.role === "chef_d_equipe") {
+      const ownerId = project?.created_by_id || project?.created_by?.id || project?.created_by
+      return ownerId ? String(ownerId) === String(user.id) : false
+    }
+    return false
+  }
+  const parseDate = (value?: string) => (value ? new Date(value) : null)
+  const getDaysLeft = (end?: string) => {
+    const d = parseDate(end)
+    if (!d) return null
+    const ms = d.getTime() - Date.now()
+    return Math.ceil(ms / (1000 * 60 * 60 * 24))
+  }
+  const isTaggedInProject = (project: any) => Array.isArray(project.team_members) && project.team_members.includes(user.id)
+  const prioritizedProjects = [...projects]
+    .sort((a, b) => {
+      const aTagged = isTaggedInProject(a) ? 1 : 0
+      const bTagged = isTaggedInProject(b) ? 1 : 0
+      if (aTagged !== bTagged) return bTagged - aTagged
+      const aEnd = parseDate(a.end_date)?.getTime() ?? Number.MAX_SAFE_INTEGER
+      const bEnd = parseDate(b.end_date)?.getTime() ?? Number.MAX_SAFE_INTEGER
+      return aEnd - bEnd
+    })
+    .slice(0, 5)
+
+  const latestPublications = [...publications]
+    .sort((a, b) => new Date(b.posted_at).getTime() - new Date(a.posted_at).getTime())
+    .slice(0, 6)
 
   const staggerContainer = {
     animate: {
@@ -1453,6 +1513,7 @@ export default function DashboardPage() {
                           publications={publications} 
                           currentUserId={user.id}
                           onPublicationDelete={(publicationId) => setPublications(pubs => pubs.filter(p => p.id !== publicationId))}
+                          onPublicationEdit={handlePublicationEdit}
                         />
                       </div>
                     </CardContent>
@@ -1461,7 +1522,7 @@ export default function DashboardPage() {
               )}
             </AnimatePresence>
 
-            {/* Recent Activities */}
+            {/* Home Feed (Accueil) */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
@@ -1469,28 +1530,102 @@ export default function DashboardPage() {
             >
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <BarChart3 className="h-5 w-5 mr-2 text-purple-600" />
-                    Activités Récentes
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <BarChart3 className="h-5 w-5 mr-2 text-purple-600" />
+                      Accueil
+                    </div>
+                    <div className="text-xs text-gray-500">Personnalisé pour {user.name}</div>
                   </CardTitle>
-                  <CardDescription>Vos dernières actions sur la plateforme</CardDescription>
+                  <CardDescription>Projets à prioriser et publications récentes</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { action: "Document partagé", item: "Rapport de recherche Q4", time: "Il y a 2h" },
-                      { action: "Commentaire ajouté", item: "Projet IA Éthique", time: "Il y a 4h" },
-                      { action: "Publication mise à jour", item: "Article Nature", time: "Hier" },
-                      { action: "Événement créé", item: "Séminaire mensuel", time: "Il y a 2 jours" },
-                    ].map((activity, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-gray-800">{activity.action}</p>
-                          <p className="text-sm text-gray-600">{activity.item}</p>
-                        </div>
-                        <span className="text-xs text-gray-500">{activity.time}</span>
+                  <div className="space-y-6">
+                    {/* Projects for you */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-800">Projets à prioriser</h4>
+                        <Link href="/projects" className="text-xs text-indigo-600 hover:underline">Voir tous</Link>
                       </div>
-                    ))}
+                      {prioritizedProjects.length === 0 ? (
+                        <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-600">Aucun projet à afficher</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {prioritizedProjects.map((p) => {
+                            const daysLeft = getDaysLeft(p.end_date)
+                            const tagged = isTaggedInProject(p)
+                            return (
+                              <div key={p.id} className="p-3 bg-gray-50 rounded-lg flex items-start justify-between">
+                                <div className="min-w-0 pr-3">
+                                  <div className="flex items-center gap-2">
+                                    <Link href="#" onClick={(e) => { e.preventDefault(); openProjectDetails(p) }} className="font-medium text-gray-800 hover:underline truncate">
+                                      {p.title}
+                                    </Link>
+                                    {tagged && <Badge className="bg-indigo-100 text-indigo-700">À vous</Badge>}
+                                  </div>
+                                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+                                    <Badge className={
+                                      p.priority === "urgent" ? "bg-red-100 text-red-700" :
+                                      p.priority === "high" ? "bg-orange-100 text-orange-700" :
+                                      p.priority === "medium" ? "bg-blue-100 text-blue-700" :
+                                      "bg-gray-100 text-gray-700"
+                                    }>
+                                      {p.priority === "urgent" ? "Urgent" : p.priority === "high" ? "Élevée" : p.priority === "medium" ? "Moyenne" : "Faible"}
+                                    </Badge>
+                                    {p.status && (
+                                      <Badge variant="outline" className="text-gray-700 border-gray-300">{p.status}</Badge>
+                                    )}
+                                    {typeof daysLeft === 'number' && (
+                                      <span className={
+                                        daysLeft < 0 ? "text-red-600" : daysLeft <= 3 ? "text-orange-600" : "text-gray-600"
+                                      }>
+                                        {daysLeft < 0 ? `En retard de ${Math.abs(daysLeft)}j` : daysLeft === 0 ? "Échéance aujourd'hui" : `Échéance dans ${daysLeft}j`}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                                  <Button size="sm" variant="outline" onClick={() => openProjectDetails(p)} className="text-indigo-600 border-indigo-300 hover:bg-indigo-50">Détails</Button>
+                                  {canEditProject(p) && (
+                                    <Button size="sm" variant="outline" onClick={() => handleEditProject(p)} className="text-blue-600 border-blue-300 hover:bg-blue-50">Éditer</Button>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Latest publications (For you) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-800">Publications pour vous</h4>
+                        <Link href="/publications" className="text-xs text-indigo-600 hover:underline">Voir toutes</Link>
+                      </div>
+                      {latestPublications.length === 0 ? (
+                        <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-600">Aucune publication récente</div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {latestPublications.map((pub) => (
+                            <div key={pub.id} className="p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-start justify-between">
+                                <div className="min-w-0 pr-3">
+                                  <div className="font-medium text-gray-800 truncate" title={pub.title}>{pub.title}</div>
+                                  <div className="text-xs text-gray-600 mt-0.5 truncate" title={pub.abstract}>{pub.abstract}</div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {new Date(pub.posted_at).toLocaleDateString('fr-FR')} • {pub.posted_by?.name || 'Anonyme'}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                                  <Button size="sm" variant="ghost" className="text-indigo-600" onClick={() => { setSelectedPublicationForDetail(pub); setIsDetailModalOpen(true) }}>Voir</Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1604,10 +1739,16 @@ export default function DashboardPage() {
                                 className={
                                   member.role === "admin"
                                     ? "bg-purple-100 text-purple-700"
+                                    : member.role === "chef_d_equipe"
+                                    ? "bg-orange-100 text-orange-700"
                                     : "bg-blue-100 text-blue-700"
                                 }
                               >
-                                {member.role === "admin" ? "Admin" : "Membre"}
+                                {member.role === "admin"
+                                  ? "Admin"
+                                  : member.role === "chef_d_equipe"
+                                  ? "Chef d'équipe"
+                                  : "Membre"}
                               </Badge>
                             </div>
                           </div>
@@ -1827,6 +1968,23 @@ export default function DashboardPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Publication Edit Modal */}
+      {selectedPublicationForEdit && (
+        <PublicationEditModal
+          publication={selectedPublicationForEdit}
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+      {selectedPublicationForDetail && (
+        <PublicationDetailModal
+          publication={selectedPublicationForDetail as any}
+          isOpen={isDetailModalOpen}
+          onClose={() => { setIsDetailModalOpen(false); setSelectedPublicationForDetail(null) }}
+        />
+      )}
     </div>
   )
 }
