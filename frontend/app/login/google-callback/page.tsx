@@ -8,7 +8,7 @@ export default function GoogleCallbackPage() {
   const { setUser } = useAuth();
 
   useEffect(() => {
-    fetch("http://localhost:8000/auth/google/jwt/", {
+    fetch("https://laboissim.onrender.com/auth/google/jwt/", {
       credentials: "include",
     })
       .then(async (res) => {
@@ -18,7 +18,7 @@ export default function GoogleCallbackPage() {
         localStorage.setItem("token", data.access);
         localStorage.setItem("refresh", data.refresh);
         // Fetch user data from backend
-        const userRes = await fetch("http://localhost:8000/api/user/", {
+        const userRes = await fetch("https://laboissim.onrender.com/api/user/", {
           headers: {
             "Authorization": `Bearer ${data.access}`,
           },

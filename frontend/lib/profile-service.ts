@@ -24,7 +24,7 @@ export interface ExtendedUser {
   profile: UserProfile;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.onrender.com/api';
 
 export const getCurrentUser = async (): Promise<ExtendedUser> => {
   const token = getAccessToken();

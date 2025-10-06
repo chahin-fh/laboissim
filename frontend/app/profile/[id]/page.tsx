@@ -44,7 +44,7 @@ export default function TeamMemberProfilePage() {
   const fetchMemberData = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:8000/api/team-members/")
+      const response = await fetch("https://laboissim.onrender.com/api/team-members/")
       if (response.ok) {
         const members = await response.json()
         const foundMember = members.find((m: TeamMember) => m.id.toString() === params.id)
@@ -81,7 +81,7 @@ export default function TeamMemberProfilePage() {
 
   const getProfileImageUrl = (member: TeamMember) => {
     if (member.profile?.profile_image) {
-      return `http://localhost:8000${member.profile.profile_image}`
+      return `https://laboissim.onrender.com${member.profile.profile_image}`
     }
     return "/placeholder-user.jpg"
   }

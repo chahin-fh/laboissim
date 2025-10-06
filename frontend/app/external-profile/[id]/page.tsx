@@ -63,7 +63,7 @@ export default function ExternalProfilePage({ params }: { params: { id: string }
       }
       
       // Fetch external member data
-      const response = await fetch(`http://localhost:8000/api/external-members/${params.id}/`, {
+      const response = await fetch(`https://laboissim.onrender.com/api/external-members/${params.id}/`, {
         headers
       })
       if (response.ok) {
@@ -75,7 +75,7 @@ export default function ExternalProfilePage({ params }: { params: { id: string }
       }
 
       // Fetch publications where this external member is tagged
-      const publicationsResponse = await fetch(`http://localhost:8000/api/publications/`, {
+      const publicationsResponse = await fetch(`https://laboissim.onrender.com/api/publications/`, {
         headers
       })
       if (publicationsResponse.ok) {

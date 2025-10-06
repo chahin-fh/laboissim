@@ -13,15 +13,15 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8000/api/:path*',
+        destination: 'https://laboissim.onrender.com/api/:path*',
       },
       {
         source: '/auth/:path*',
-        destination: 'http://localhost:8000/auth/:path*',
+        destination: 'https://laboissim.onrender.com/auth/:path*',
       },
       {
         source: '/media/:path*',
-        destination: 'http://localhost:8000/media/:path*',
+        destination: 'https://laboissim.onrender.com/media/:path*',
       },
     ];
   },

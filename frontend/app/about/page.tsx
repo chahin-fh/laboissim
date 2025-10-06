@@ -47,7 +47,7 @@ export default function AboutPage() {
 
   const getProfileImageUrl = (member: TeamMember) => {
     if (member.profile?.profile_image) {
-      return `http://localhost:8000${member.profile.profile_image}`
+      return `https://laboissim.onrender.com${member.profile.profile_image}`
     }
     return "/placeholder-user.jpg"
   }
