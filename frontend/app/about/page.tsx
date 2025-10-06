@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -53,7 +53,8 @@ export default function AboutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 pt-20">
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div></div>}>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 pt-20">
       <div className="container mx-auto px-4 py-12">
         {/* Hero Section */}
         <motion.div
@@ -312,5 +313,6 @@ export default function AboutPage() {
         </Tabs>
       </div>
     </div>
+    </Suspense>
   )
 }
