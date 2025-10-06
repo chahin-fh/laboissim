@@ -17,15 +17,10 @@ export async function uploadFile(file: File): Promise<FileResponse> {
   formData.append('name', file.name);
 
   const token = localStorage.getItem('token');
-  console.log('Token for upload:', token ? 'Present' : 'Missing');
-  
   const headers: HeadersInit = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-
-  console.log('Uploading file:', file.name, 'Size:', file.size);
-  console.log('Headers:', headers);
 
   const response = await fetch('https://laboissim.onrender.com/api/files/', {
     method: 'POST',
@@ -33,18 +28,13 @@ export async function uploadFile(file: File): Promise<FileResponse> {
     headers,
   });
 
-  console.log('Upload response status:', response.status);
-  console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
-
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Upload error:', response.status, errorText);
     throw new Error(`Failed to upload file: ${response.status} ${errorText}`);
   }
 
-  const result = await response.json();
-  console.log('Upload result:', result);
-  return result;
+  return response.json();
 }
 
 export async function getUserFiles(): Promise<FileResponse[]> {
@@ -88,7 +78,7 @@ export async function deleteFile(fileId: string): Promise<void> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`https://laboissim.onrender.com/api/files/${fileId}`, {
+  const response = await fetch(`https://laboissim.onrender.com/api/files/${fileId}/`, {
     method: 'DELETE',
     headers,
   });
@@ -113,9 +103,7 @@ export async function downloadFile(fileUrl: string, fileName: string): Promise<v
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Download error:', response.status, errorText);
-      throw new Error(`Failed to download file: ${response.status} ${errorText}`);
+      throw new Error('Failed to download file');
     }
 
     const blob = await response.blob();
@@ -139,17 +127,4 @@ export function formatFileSize(bytes: number): string {
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-export function getFileUrl(filePath: string): string {
-  // Convert relative file path to full URL
-  if (filePath.startsWith('http')) {
-    return filePath;
-  }
-  return `https://laboissim.onrender.com${filePath}`;
-}
-
-export function getFileDownloadUrl(fileId: string): string {
-  // Get the download endpoint URL for a specific file
-  return `https://laboissim.onrender.com/api/files/${fileId}/download/`;
 }

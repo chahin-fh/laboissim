@@ -22,8 +22,6 @@ const getAuthHeaders = () => {
   };
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.onrender.com';
-
 export async function createExternalMember(data: CreateExternalMemberData): Promise<ExternalMember> {
   const formData = new FormData();
   
@@ -38,7 +36,7 @@ export async function createExternalMember(data: CreateExternalMemberData): Prom
     formData.append('profile_pic', data.profile_pic);
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/external-members/`, {
+  const response = await fetch('https://laboissim.onrender.com/api/external-members/', {
     method: 'POST',
     headers: getAuthHeaders(), // Don't set Content-Type for FormData
     body: formData,
@@ -54,7 +52,7 @@ export async function createExternalMember(data: CreateExternalMemberData): Prom
 }
 
 export async function getExternalMembers(): Promise<ExternalMember[]> {
-  const response = await fetch(`${API_BASE_URL}/api/external-members/`, {
+  const response = await fetch('https://laboissim.onrender.com/api/external-members/', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

@@ -1,45 +1,28 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Search, ArrowRight, Calendar, Users, ExternalLink, Download, ArrowLeft } from "lucide-react"
+import { ArrowRight, Calendar, Users, Download, ArrowLeft, FileText } from "lucide-react"
+import {
+  getPublicProjects,
+  getPublicProjectDocuments,
+  type Project,
+  type ProjectDocument,
+  getStatusColor,
+  getPriorityColor,
+  getStatusLabel,
+  getPriorityLabel,
+  formatFileSize,
+} from "@/lib/project-service"
 
-interface Project {
-  id: string
-  title: string
-  shortDescription: string
-  fullDescription: string
-  category: string
-  status: string
-  startDate: string
-  endDate: string
-  team: string[]
-  funding: string
-  fundingAmount: string
-  image: string
-  objectives: string[]
-  methodology: string[]
-  results: string[]
-  publications: Array<{
-    title: string
-    authors: string
-    journal: string
-    year: number
-    url: string
-  }>
-  documents: Array<{
-    name: string
-    url: string
-  }>
-}
+// Use Project type from service instead of local mock
 
-function ProjectDetail({ project, onBack }: { project: Project; onBack: () => void }) {
+function ProjectDetail({ project, onBack, documents, loading }: { project: Project; onBack: () => void; documents: ProjectDocument[]; loading: boolean }) {
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
@@ -56,112 +39,59 @@ function ProjectDetail({ project, onBack }: { project: Project; onBack: () => vo
         <div className="lg:col-span-2 space-y-8">
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <div className="relative overflow-hidden">
-              <Image
-                src={project.image || "/placeholder.svg"}
-                alt={project.title}
-                width={800}
-                height={400}
-                className="w-full h-64 object-cover"
-              />
+              {project.image ? (
+                <Image
+                  src={project.image}
+                  alt={project.title}
+                  width={800}
+                  height={400}
+                  className="w-full h-64 object-cover"
+                />
+              ) : (
+                <div className="w-full h-64 bg-gray-100" />
+              )}
               <div className="absolute top-4 left-4 flex gap-2">
-                <Badge
-                  className={`${
-                    project.status === "En cours"
-                      ? "bg-green-600"
-                      : project.status === "Terminé"
-                        ? "bg-blue-600"
-                        : "bg-amber-600"
-                  } text-white`}
-                >
-                  {project.status}
-                </Badge>
-                <Badge className="bg-gradient-primary text-white">{project.category}</Badge>
+                <Badge className={getStatusColor(project.status)}>{getStatusLabel(project.status)}</Badge>
+                <Badge className={getPriorityColor(project.priority)}>{getPriorityLabel(project.priority)}</Badge>
               </div>
             </div>
             <CardHeader>
               <CardTitle className="text-3xl text-gray-800">{project.title}</CardTitle>
-              <p className="text-gray-600 text-lg">{project.fullDescription}</p>
+              <p className="text-gray-600 text-lg">{project.description}</p>
             </CardHeader>
           </Card>
 
+          {/* Documents */}
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
-              <CardTitle>Objectifs</CardTitle>
+              <CardTitle>Documents</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-3">
-                {project.objectives.map((objective, index) => (
-                  <li key={index} className="flex items-start">
-                    <div className="mr-3 mt-1 bg-violet-600 rounded-full p-1">
-                      <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span className="text-gray-700">{objective}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Méthodologie</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                {project.methodology.map((method, index) => (
-                  <li key={index} className="flex items-start">
-                    <div className="mr-3 mt-1 bg-electric-600 rounded-full p-1">
-                      <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                    <span className="text-gray-700">{method}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Résultats et Impact</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                {project.results.map((result, index) => (
-                  <li key={index} className="flex items-start">
-                    <div className="mr-3 mt-1 bg-green-600 rounded-full p-1">
-                      <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span className="text-gray-700">{result}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Publications Associées</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {project.publications.map((pub, index) => (
-                  <div key={index} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                    <h4 className="font-medium text-gray-800 mb-1">{pub.title}</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {pub.journal}, {pub.year} • {pub.authors}
-                    </p>
-                    <Button variant="ghost" size="sm" className="text-violet-600 p-0 h-auto">
-                      Voir la publication <ExternalLink className="ml-1 h-3 w-3" />
+              {loading ? (
+                <p className="text-sm text-gray-500">Chargement des documents...</p>
+              ) : documents.length > 0 ? (
+                <div className="space-y-3">
+                  {documents.map((doc) => (
+                    <Button
+                      key={doc.id}
+                      variant="outline"
+                      className="w-full justify-between border-violet-200 text-violet-600 hover:bg-violet-50"
+                      onClick={() => window.open(doc.file, '_blank')}
+                    >
+                      <span className="truncate text-left">
+                        {doc.name}
+                        <span className="ml-2 text-xs text-gray-500">{formatFileSize(doc.size)} • {doc.uploaded_by_name}</span>
+                      </span>
+                      <Download className="h-4 w-4" />
                     </Button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center text-sm text-gray-500">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Aucun document pour ce projet
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -173,10 +103,22 @@ function ProjectDetail({ project, onBack }: { project: Project; onBack: () => vo
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
+                <h4 className="font-medium text-gray-800 mb-1">Créé par</h4>
+                <div className="text-gray-600">
+                  <Link 
+                    href={`/profile/${project.created_by}`}
+                    className="text-violet-600 hover:text-violet-700 hover:underline transition-colors"
+                  >
+                    {project.created_by_name}
+                  </Link>
+                </div>
+              </div>
+
+              <div>
                 <h4 className="font-medium text-gray-800 mb-1">Période</h4>
                 <div className="flex items-center text-gray-600">
                   <Calendar className="h-4 w-4 mr-2" />
-                  {new Date(project.startDate).toLocaleDateString()} - {new Date(project.endDate).toLocaleDateString()}
+                  {(project.start_date ? new Date(project.start_date).toLocaleDateString() : '—')} - {(project.end_date ? new Date(project.end_date).toLocaleDateString() : '—')}
                 </div>
               </div>
 
@@ -184,41 +126,20 @@ function ProjectDetail({ project, onBack }: { project: Project; onBack: () => vo
                 <h4 className="font-medium text-gray-800 mb-1">Équipe</h4>
                 <div className="flex items-center text-gray-600">
                   <Users className="h-4 w-4 mr-2" />
-                  {project.team.length} membres
+                  {project.team_members_names.length} membres
                 </div>
                 <ul className="mt-2 space-y-1">
-                  {project.team.map((member, index) => (
+                  {project.team_members_names.map((member, index) => (
                     <li key={index} className="text-sm text-gray-600">
-                      • {member}
+                      • <Link 
+                        href={`/profile/${project.team_members[index]}`}
+                        className="text-violet-600 hover:text-violet-700 hover:underline transition-colors"
+                      >
+                        {member}
+                      </Link>
                     </li>
                   ))}
                 </ul>
-              </div>
-
-              <div>
-                <h4 className="font-medium text-gray-800 mb-1">Financement</h4>
-                <p className="text-gray-600">{project.funding}</p>
-                <p className="text-lg font-semibold text-violet-600">{project.fundingAmount}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {project.documents.map((doc, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    className="w-full justify-between border-violet-200 text-violet-600 hover:bg-violet-50"
-                  >
-                    <span>{doc.name}</span>
-                    <Download className="h-4 w-4" />
-                  </Button>
-                ))}
               </div>
             </CardContent>
           </Card>
@@ -230,9 +151,26 @@ function ProjectDetail({ project, onBack }: { project: Project; onBack: () => vo
 
 export default function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("all")
-  const [selectedStatus, setSelectedStatus] = useState("all")
-  const [selectedProject, setSelectedProject] = useState<string | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(false)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [documents, setDocuments] = useState<ProjectDocument[]>([])
+  const [documentsLoading, setDocumentsLoading] = useState(false)
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        setLoading(true)
+        const data = await getPublicProjects()
+        setProjects(data)
+      } catch (e) {
+        console.error('Error fetching projects:', e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetch()
+  }, [])
 
   const fadeInUp = {
     initial: { opacity: 0, y: 60 },
@@ -248,160 +186,13 @@ export default function ProjectsPage() {
     },
   }
 
-  const projects: Project[] = [
-    {
-      id: "ai-ethics",
-      title: "Intelligence Artificielle Éthique",
-      shortDescription: "Développement d'algorithmes d'IA responsables et transparents",
-      fullDescription:
-        "Ce projet vise à développer des algorithmes d'intelligence artificielle qui sont non seulement performants, mais aussi éthiques, transparents et équitables. Nous travaillons sur des méthodes pour réduire les biais algorithmiques, améliorer l'explicabilité des modèles d'IA, et garantir la protection de la vie privée dans les applications d'apprentissage automatique.",
-      category: "Intelligence Artificielle",
-      status: "En cours",
-      startDate: "2022-01-15",
-      endDate: "2025-01-14",
-      team: ["Prof. Jean Martin", "Dr. Émilie Moreau", "Dr. Carlos Garcia"],
-      funding: "Agence Nationale de la Recherche (ANR)",
-      fundingAmount: "850 000 €",
-      image: "/placeholder.svg?height=300&width=500",
-      objectives: [
-        "Développer des algorithmes d'IA explicables et transparents",
-        "Réduire les biais algorithmiques dans les systèmes d'IA",
-        "Créer des cadres d'évaluation éthique pour les applications d'IA",
-        "Établir des lignes directrices pour le développement responsable de l'IA",
-      ],
-      methodology: [
-        "Analyse comparative des méthodes d'explicabilité existantes",
-        "Développement de nouvelles techniques de détection et correction de biais",
-        "Études de cas dans différents domaines d'application (santé, justice, finance)",
-        "Collaboration avec des experts en éthique et en sciences sociales",
-      ],
-      results: [
-        "Publication de 5 articles dans des revues internationales",
-        "Développement d'une bibliothèque open-source pour l'IA explicable",
-        "Organisation d'un workshop international sur l'éthique de l'IA",
-      ],
-      publications: [
-        {
-          title: "Towards Transparent AI: A Framework for Explainable Machine Learning Models",
-          authors: "Martin J., Moreau E., Garcia C.",
-          journal: "Journal of Artificial Intelligence Research",
-          year: 2023,
-          url: "#",
-        },
-      ],
-      documents: [
-        { name: "Rapport intermédiaire (PDF)", url: "#" },
-        { name: "Présentation du projet (PPTX)", url: "#" },
-        { name: "Code source (GitHub)", url: "#" },
-      ],
-    },
-    {
-      id: "personalized-medicine",
-      title: "Médecine Personnalisée",
-      shortDescription: "Recherche sur les traitements adaptés au profil génétique",
-      fullDescription:
-        "Ce projet de recherche explore comment les traitements médicaux peuvent être adaptés au profil génétique unique de chaque patient. En utilisant des techniques avancées de séquençage génomique et d'analyse de données, nous développons des approches thérapeutiques personnalisées qui maximisent l'efficacité tout en minimisant les effets secondaires.",
-      category: "Biotechnologie",
-      status: "En cours",
-      startDate: "2021-09-01",
-      endDate: "2024-08-31",
-      team: ["Dr. Sophie Dubois", "Dr. Li Chen", "Prof. Jean Martin"],
-      funding: "Institut National de la Santé",
-      fundingAmount: "1 200 000 €",
-      image: "/placeholder.svg?height=300&width=500",
-      objectives: [
-        "Identifier des biomarqueurs génétiques pour la réponse aux traitements",
-        "Développer des algorithmes de prédiction pour la médecine personnalisée",
-        "Valider les approches thérapeutiques personnalisées dans des études cliniques",
-        "Créer une plateforme intégrée pour la médecine de précision",
-      ],
-      methodology: [
-        "Séquençage génomique complet de cohortes de patients",
-        "Analyse bioinformatique et intégration de données multi-omiques",
-        "Modélisation in silico de la réponse aux médicaments",
-        "Validation expérimentale sur des modèles cellulaires et animaux",
-      ],
-      results: [
-        "Identification de 15 nouveaux biomarqueurs de réponse thérapeutique",
-        "Développement d'un algorithme de prédiction avec 85% de précision",
-        "Publication de 8 articles scientifiques",
-      ],
-      publications: [
-        {
-          title: "Genomic Biomarkers for Personalized Cancer Treatment",
-          authors: "Dubois S., Chen L., Martin J.",
-          journal: "Nature Medicine",
-          year: 2023,
-          url: "#",
-        },
-      ],
-      documents: [
-        { name: "Protocole de recherche (PDF)", url: "#" },
-        { name: "Données préliminaires (XLSX)", url: "#" },
-        { name: "Présentation des résultats (PDF)", url: "#" },
-      ],
-    },
-    {
-      id: "renewable-energy",
-      title: "Énergies Renouvelables",
-      shortDescription: "Innovation dans les technologies solaires de nouvelle génération",
-      fullDescription:
-        "Ce projet se concentre sur le développement de technologies solaires de nouvelle génération, avec un accent particulier sur les cellules photovoltaïques à haut rendement et les matériaux durables. Nous explorons également des solutions innovantes pour le stockage d'énergie et l'intégration des énergies renouvelables dans les réseaux électriques intelligents.",
-      category: "Environnement",
-      status: "En cours",
-      startDate: "2022-03-01",
-      endDate: "2025-02-28",
-      team: ["Dr. Thomas Leroy", "Dr. Li Chen", "Prof. Jean Martin"],
-      funding: "Programme Européen Horizon Europe",
-      fundingAmount: "1 500 000 €",
-      image: "/placeholder.svg?height=300&width=500",
-      objectives: [
-        "Développer des cellules solaires à haut rendement (>30%)",
-        "Créer des matériaux durables et abordables pour les technologies solaires",
-        "Concevoir des solutions innovantes pour le stockage d'énergie",
-        "Optimiser l'intégration des énergies renouvelables dans les réseaux électriques",
-      ],
-      methodology: [
-        "Synthèse et caractérisation de nouveaux matériaux photovoltaïques",
-        "Modélisation et simulation des performances des cellules solaires",
-        "Prototypage et tests en conditions réelles",
-        "Analyse du cycle de vie et évaluation de la durabilité",
-      ],
-      results: [
-        "Développement d'une cellule solaire avec un rendement de 28%",
-        "Création d'un nouveau matériau photovoltaïque à base de pérovskite stable",
-        "Dépôt de 2 brevets internationaux",
-      ],
-      publications: [
-        {
-          title: "High-Efficiency Perovskite-Silicon Tandem Solar Cells",
-          authors: "Leroy T., Chen L., Martin J.",
-          journal: "Nature Energy",
-          year: 2023,
-          url: "#",
-        },
-      ],
-      documents: [
-        { name: "Rapport technique (PDF)", url: "#" },
-        { name: "Données de performance (CSV)", url: "#" },
-        { name: "Présentation des prototypes (PPTX)", url: "#" },
-      ],
-    },
-  ]
-
   const filteredProjects = projects.filter((project) => {
-    const matchesSearch =
-      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.shortDescription.toLowerCase().includes(searchQuery.toLowerCase())
-
-    const matchesCategory = selectedCategory === "all" || project.category === selectedCategory
-    const matchesStatus = selectedStatus === "all" || project.status === selectedStatus
-
-    return matchesSearch && matchesCategory && matchesStatus
+    const query = searchQuery.toLowerCase()
+    return (
+      project.title.toLowerCase().includes(query) ||
+      project.description.toLowerCase().includes(query)
+    )
   })
-
-  const categories = Array.from(new Set(projects.map((project) => project.category)))
-  const statuses = Array.from(new Set(projects.map((project) => project.status)))
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-electric-50 to-violet-100 pt-20">
@@ -424,7 +215,9 @@ export default function ProjectsPage() {
 
         {selectedProject ? (
           <ProjectDetail
-            project={projects.find((p) => p.id === selectedProject)!}
+            project={selectedProject}
+            documents={documents}
+            loading={documentsLoading}
             onBack={() => setSelectedProject(null)}
           />
         ) : (
@@ -436,53 +229,7 @@ export default function ProjectsPage() {
               transition={{ duration: 0.6 }}
               className="mb-12"
             >
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="relative flex-grow">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                      <Input
-                        placeholder="Rechercher un projet..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 border-gray-200 focus:border-violet-500 focus:ring-violet-500"
-                      />
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <div className="w-full sm:w-48">
-                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                          <SelectTrigger className="border-gray-200 focus:border-violet-500 focus:ring-violet-500">
-                            <SelectValue placeholder="Catégorie" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Toutes les catégories</SelectItem>
-                            {categories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="w-full sm:w-48">
-                        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                          <SelectTrigger className="border-gray-200 focus:border-violet-500 focus:ring-violet-500">
-                            <SelectValue placeholder="Statut" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Tous les statuts</SelectItem>
-                            {statuses.map((status) => (
-                              <SelectItem key={status} value={status}>
-                                {status}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+
             </motion.div>
 
             {/* Projects Grid */}
@@ -492,46 +239,56 @@ export default function ProjectsPage() {
               animate="animate"
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
-              {filteredProjects.length > 0 ? (
+              {loading ? (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-500 text-lg">Chargement des projets...</p>
+                </div>
+              ) : filteredProjects.length > 0 ? (
                 filteredProjects.map((project) => (
                   <motion.div key={project.id} variants={fadeInUp}>
                     <Card
                       className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer group"
-                      onClick={() => setSelectedProject(project.id)}
+                      onClick={async () => {
+                        setSelectedProject(project)
+                        try {
+                          setDocumentsLoading(true)
+                          const docs = await getPublicProjectDocuments(String(project.id))
+                          setDocuments(docs)
+                        } catch (e) {
+                          console.error('Error loading documents:', e)
+                          setDocuments([])
+                        } finally {
+                          setDocumentsLoading(false)
+                        }
+                      }}
                     >
                       <div className="relative overflow-hidden">
-                        <Image
-                          src={project.image || "/placeholder.svg"}
-                          alt={project.title}
-                          width={500}
-                          height={300}
-                          className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
+                        {project.image ? (
+                          <Image
+                            src={project.image}
+                            alt={project.title}
+                            width={500}
+                            height={300}
+                            className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-48 bg-gray-100" />
+                        )}
                         <div className="absolute top-4 left-4 flex gap-2">
-                          <Badge
-                            className={`${
-                              project.status === "En cours"
-                                ? "bg-green-600"
-                                : project.status === "Terminé"
-                                  ? "bg-blue-600"
-                                  : "bg-amber-600"
-                            } text-white`}
-                          >
-                            {project.status}
-                          </Badge>
-                          <Badge className="bg-gradient-primary text-white">{project.category}</Badge>
+                          <Badge className={getStatusColor(project.status)}>{getStatusLabel(project.status)}</Badge>
+                          <Badge className={getPriorityColor(project.priority)}>{getPriorityLabel(project.priority)}</Badge>
                         </div>
                       </div>
                       <CardHeader className="flex-grow">
                         <CardTitle className="text-xl group-hover:text-violet-600 transition-colors">
                           {project.title}
                         </CardTitle>
-                        <p className="text-gray-600">{project.shortDescription}</p>
+                        <p className="text-gray-600 line-clamp-3">{project.description}</p>
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-center justify-between">
                           <div className="text-sm text-gray-500">
-                            {project.team.length} membres • {project.fundingAmount}
+                            {project.team_members_names.length} membres • {project.documents_count} documents
                           </div>
                           <ArrowRight className="h-4 w-4 text-violet-600 group-hover:translate-x-1 transition-transform" />
                         </div>
