@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -12,7 +12,7 @@ import { ArrowRight, Users, History, Lightbulb, User, Mail, MapPin, Building } f
 import { useContentManager } from "@/lib/content-manager"
 import { useTeamMembers, TeamMember } from "@/lib/team-service"
 
-function AboutPageContent() {
+export default function AboutPage() {
   const { content } = useContentManager()
   const { members, loading, error } = useTeamMembers()
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
@@ -47,7 +47,7 @@ function AboutPageContent() {
 
   const getProfileImageUrl = (member: TeamMember) => {
     if (member.profile?.profile_image) {
-      return `https://laboissim.onrender.com${member.profile.profile_image}`
+      return `http://localhost:8000${member.profile.profile_image}`
     }
     return "/placeholder-user.jpg"
   }
@@ -312,17 +312,5 @@ function AboutPageContent() {
         </Tabs>
       </div>
     </div>
-  )
-}
-
-export default function AboutPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 pt-20 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    }>
-      <AboutPageContent />
-    </Suspense>
   )
 }

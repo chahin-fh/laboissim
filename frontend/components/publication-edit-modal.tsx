@@ -7,11 +7,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { X, Search, Upload, Plus, Users, UserPlus, FileText, Tag, User } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import { searchMembers, searchExternals, createPublication } from "@/lib/publication-service"
-import { createExternalMember } from "@/lib/external-member-service"
+import { X, Search, Upload, Plus, Users, UserPlus, FileText, Tag, User } from "lucide-react"
+import { updatePublication, searchMembers, searchExternals } from "@/lib/publication-service"
 import { uploadFile } from "@/lib/file-service"
 import { useToast } from "@/hooks/use-toast"
 
@@ -27,80 +27,112 @@ interface ExternalSearchResult {
   email: string;
 }
 
-interface PublicationFormProps {
+interface PublicationEditModalProps {
+  publication: {
+    id: string;
+    title: string;
+    abstract: string;
+    category?: 'article' | 'book_chapter' | 'memoire' | 'conference';
+    // Article
+    journal?: string | null;
+    publication_year?: number | null;
+    volume?: string | null;
+    number?: string | null;
+    pages?: string | null;
+    // Book / Chapter
+    edition?: string | null;
+    publication_place?: string | null;
+    publisher_name?: string | null;
+    // Memoire
+    author_name?: string | null;
+    thesis_title?: string | null;
+    thesis_year?: number | null;
+    university?: string | null;
+    // Conference
+    presentation_title?: string | null;
+    conference_title?: string | null;
+    conference_year?: number | null;
+    conference_location?: string | null;
+    conference_pages?: string | null;
+    tagged_members?: Array<{
+      id: string;
+      name: string;
+      username: string;
+    }>;
+    tagged_externals?: Array<{
+      id: string;
+      name: string;
+      email: string;
+    }>;
+    attached_files?: Array<{
+      id: string;
+      name: string;
+      file: string;
+      file_type: string;
+      size: number;
+    }>;
+    keywords?: string[];
+  };
+  isOpen: boolean;
+  onClose: () => void;
   onSuccess?: () => void;
-  onCancel?: () => void;
 }
 
-export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
+export function PublicationEditModal({ publication, isOpen, onClose, onSuccess }: PublicationEditModalProps) {
   const { toast } = useToast()
-  const [title, setTitle] = useState("")
-  const [abstract, setAbstract] = useState("")
-  const [keywords, setKeywords] = useState<string[]>([])
+  const [title, setTitle] = useState(publication.title)
+  const [abstract, setAbstract] = useState(publication.abstract)
+  const [keywords, setKeywords] = useState<string[]>(publication.keywords || [])
   const [keywordInput, setKeywordInput] = useState("")
-  const [category, setCategory] = useState<'article' | 'book_chapter' | 'memoire' | 'conference'>('article')
+  const [category, setCategory] = useState<'article' | 'book_chapter' | 'memoire' | 'conference'>(publication.category || 'article')
 
   // Category-specific fields
   const [articleFields, setArticleFields] = useState({
-    journal: '',
-    publication_year: '',
-    volume: '',
-    number: '',
-    pages: '',
+    journal: publication.journal || '',
+    publication_year: publication.publication_year?.toString() || '',
+    volume: publication.volume || '',
+    number: publication.number || '',
+    pages: publication.pages || '',
   })
   const [bookFields, setBookFields] = useState({
-    edition: '',
-    publication_place: '',
-    publisher_name: '',
-    publication_year: '',
+    edition: publication.edition || '',
+    publication_place: publication.publication_place || '',
+    publisher_name: publication.publisher_name || '',
+    publication_year: publication.publication_year?.toString() || '',
   })
   const [memoireFields, setMemoireFields] = useState({
-    author_name: '',
-    thesis_title: '',
-    thesis_year: '',
-    university: '',
+    author_name: publication.author_name || '',
+    thesis_title: publication.thesis_title || '',
+    thesis_year: publication.thesis_year?.toString() || '',
+    university: publication.university || '',
   })
   const [conferenceFields, setConferenceFields] = useState({
-    presentation_title: '',
-    conference_title: '',
-    conference_year: '',
-    conference_location: '',
-    conference_pages: '',
+    presentation_title: publication.presentation_title || '',
+    conference_title: publication.conference_title || '',
+    conference_year: publication.conference_year?.toString() || '',
+    conference_location: publication.conference_location || '',
+    conference_pages: publication.conference_pages || '',
   })
-  
+
   // Member search
   const [memberSearchQuery, setMemberSearchQuery] = useState("")
   const [memberSearchResults, setMemberSearchResults] = useState<MemberSearchResult[]>([])
-  const [selectedMembers, setSelectedMembers] = useState<MemberSearchResult[]>([])
+  const [selectedMembers, setSelectedMembers] = useState<MemberSearchResult[]>(publication.tagged_members || [])
   const [showMemberResults, setShowMemberResults] = useState(false)
   const memberSearchRef = useRef<HTMLDivElement>(null)
-  
+
   // External search
   const [externalSearchQuery, setExternalSearchQuery] = useState("")
   const [externalSearchResults, setExternalSearchResults] = useState<ExternalSearchResult[]>([])
-  const [selectedExternals, setSelectedExternals] = useState<ExternalSearchResult[]>([])
+  const [selectedExternals, setSelectedExternals] = useState<ExternalSearchResult[]>(publication.tagged_externals || [])
   const [showExternalResults, setShowExternalResults] = useState(false)
   const externalSearchRef = useRef<HTMLDivElement>(null)
-  
+
   // File upload
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
-  // External member form
-  const [showExternalMemberForm, setShowExternalMemberForm] = useState(false)
-  const [externalMemberForm, setExternalMemberForm] = useState({
-    name: '',
-    email: '',
-    cv: null as File | null,
-    profilePic: null as File | null
-  })
-  
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Load all members when component mounts
-  useEffect(() => {
-    // Don't load all members automatically - only load when searching
-  }, [])
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Click outside handlers
   useEffect(() => {
@@ -163,64 +195,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
     setSelectedFiles(selectedFiles.filter((_, i) => i !== index))
   }
 
-  const handleSubmitExternalMember = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!externalMemberForm.name.trim() || !externalMemberForm.email.trim()) {
-      toast({
-        title: "Erreur",
-        description: "Le nom et l'email sont requis pour créer un profil externe",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsSubmitting(true)
-
-    try {
-      // Create the external member using the API
-      const newExternalMember = await createExternalMember({
-        name: externalMemberForm.name,
-        email: externalMemberForm.email,
-        cv: externalMemberForm.cv || undefined,
-        profile_pic: externalMemberForm.profilePic || undefined
-      })
-
-      console.log('External member created successfully:', newExternalMember)
-
-      // Add the new member to the selected externals
-      setSelectedExternals(prev => [...prev, {
-        id: newExternalMember.id,
-        name: newExternalMember.name,
-        email: newExternalMember.email
-      }])
-
-      toast({
-        title: "Succès",
-        description: "Profil externe créé avec succès et ajouté à la publication",
-      })
-      
-      // Reset form
-      setExternalMemberForm({
-        name: '',
-        email: '',
-        cv: null,
-        profilePic: null
-      })
-      setShowExternalMemberForm(false)
-      
-    } catch (error) {
-      console.error('Error creating external member:', error)
-      toast({
-        title: "Erreur",
-        description: "Impossible de créer le profil externe",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -268,7 +242,7 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
         tagged_members: selectedMembers.map(m => m.id),
         tagged_externals: selectedExternals.map(e => e.id),
         keywords: keywords,
-        attached_files: uploadedFileIds,
+        attached_files: [...(publication.attached_files?.map(f => f.id) || []), ...uploadedFileIds],
       }
 
       // attach category-specific fields
@@ -298,32 +272,20 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
 
       console.log('Publication data being sent:', publicationData)
 
-      await createPublication(publicationData)
+      await updatePublication(publication.id, publicationData)
       
       toast({
         title: "Succès",
-        description: "Publication créée avec succès",
+        description: "Publication mise à jour avec succès",
       })
       
-      // Reset form
-      setTitle("")
-      setAbstract("")
-      setKeywords([])
-      setCategory('article')
-      setArticleFields({ journal: '', publication_year: '', volume: '', number: '', pages: '' })
-      setBookFields({ edition: '', publication_place: '', publisher_name: '', publication_year: '' })
-      setMemoireFields({ author_name: '', thesis_title: '', thesis_year: '', university: '' })
-      setConferenceFields({ presentation_title: '', conference_title: '', conference_year: '', conference_location: '', conference_pages: '' })
-      setSelectedMembers([])
-      setSelectedExternals([])
-      setSelectedFiles([])
-      
       onSuccess?.()
+      onClose()
     } catch (error) {
-      console.error('Error creating publication:', error)
+      console.error('Error updating publication:', error)
       toast({
         title: "Erreur",
-        description: "Impossible de créer la publication",
+        description: "Impossible de mettre à jour la publication",
         variant: "destructive",
       })
     } finally {
@@ -332,16 +294,28 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Nouvelle Publication
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">Ajoutez une publication et reliez-y des membres, externes et fichiers.</p>
-      </CardHeader>
-      <CardContent>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Modifier la Publication
+          </DialogTitle>
+        </DialogHeader>
+        
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Title */}
+          <div className="space-y-2">
+            <Label htmlFor="title">Titre *</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Titre de la publication..."
+              required
+            />
+          </div>
+
           {/* Category */}
           <div className="space-y-3">
             <Label>Catégorie</Label>
@@ -356,17 +330,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
           </div>
 
           <Separator />
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Titre *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Titre de la publication..."
-              required
-            />
-          </div>
 
           {/* Abstract */}
           <div className="space-y-2">
@@ -379,6 +342,101 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
               rows={4}
               required
             />
+          </div>
+
+          {/* Category specific fields */}
+          <div>
+            <h4 className="text-sm font-medium mb-3 text-muted-foreground">Détails spécifiques</h4>
+            <div className="rounded-lg border bg-card p-4">
+              {category === 'article' && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Journal</Label>
+                    <Input placeholder="Ex: Nature, Science..." value={articleFields.journal} onChange={(e) => setArticleFields({ ...articleFields, journal: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Année de publication</Label>
+                    <Input type="number" placeholder="Ex: 2025" value={articleFields.publication_year} onChange={(e) => setArticleFields({ ...articleFields, publication_year: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Volume</Label>
+                    <Input placeholder="Ex: 12" value={articleFields.volume} onChange={(e) => setArticleFields({ ...articleFields, volume: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Numéro</Label>
+                    <Input placeholder="Ex: 3" value={articleFields.number} onChange={(e) => setArticleFields({ ...articleFields, number: e.target.value })} />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Pages</Label>
+                    <Input placeholder="Ex: 123-138" value={articleFields.pages} onChange={(e) => setArticleFields({ ...articleFields, pages: e.target.value })} />
+                  </div>
+                </div>
+              )}
+              {category === 'book_chapter' && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Édition</Label>
+                    <Input placeholder="Ex: 2e édition" value={bookFields.edition} onChange={(e) => setBookFields({ ...bookFields, edition: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Lieu d'édition</Label>
+                    <Input placeholder="Ex: Paris, France" value={bookFields.publication_place} onChange={(e) => setBookFields({ ...bookFields, publication_place: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nom de l'éditeur</Label>
+                    <Input placeholder="Ex: Dunod" value={bookFields.publisher_name} onChange={(e) => setBookFields({ ...bookFields, publisher_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Année de publication</Label>
+                    <Input type="number" placeholder="Ex: 2025" value={bookFields.publication_year} onChange={(e) => setBookFields({ ...bookFields, publication_year: e.target.value })} />
+                  </div>
+                </div>
+              )}
+              {category === 'memoire' && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Auteur</Label>
+                    <Input placeholder="Nom complet" value={memoireFields.author_name} onChange={(e) => setMemoireFields({ ...memoireFields, author_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Titre</Label>
+                    <Input placeholder="Titre du mémoire / thèse" value={memoireFields.thesis_title} onChange={(e) => setMemoireFields({ ...memoireFields, thesis_title: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Année</Label>
+                    <Input type="number" placeholder="Ex: 2025" value={memoireFields.thesis_year} onChange={(e) => setMemoireFields({ ...memoireFields, thesis_year: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Université</Label>
+                    <Input placeholder="Ex: Université de Tunis" value={memoireFields.university} onChange={(e) => setMemoireFields({ ...memoireFields, university: e.target.value })} />
+                  </div>
+                </div>
+              )}
+              {category === 'conference' && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Titre de la présentation</Label>
+                    <Input placeholder="Titre de l'intervention" value={conferenceFields.presentation_title} onChange={(e) => setConferenceFields({ ...conferenceFields, presentation_title: e.target.value })} />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Titre de la conférence</Label>
+                    <Input placeholder="Nom de la conférence" value={conferenceFields.conference_title} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_title: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Année</Label>
+                    <Input type="number" placeholder="Ex: 2025" value={conferenceFields.conference_year} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_year: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Lieu</Label>
+                    <Input placeholder="Ville, Pays" value={conferenceFields.conference_location} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_location: e.target.value })} />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Pages</Label>
+                    <Input placeholder="Ex: 45-52" value={conferenceFields.conference_pages} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_pages: e.target.value })} />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Keywords */}
@@ -424,101 +482,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
             )}
           </div>
 
-          {/* Category specific fields */}
-          <div>
-            <h4 className="text-sm font-medium mb-3 text-muted-foreground">Détails spécifiques</h4>
-            <div className="rounded-lg border bg-card p-4">
-          {category === 'article' && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Journal</Label>
-                <Input placeholder="Ex: Nature, Science..." value={articleFields.journal} onChange={(e) => setArticleFields({ ...articleFields, journal: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Année de publication</Label>
-                <Input type="number" placeholder="Ex: 2025" value={articleFields.publication_year} onChange={(e) => setArticleFields({ ...articleFields, publication_year: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Volume</Label>
-                <Input placeholder="Ex: 12" value={articleFields.volume} onChange={(e) => setArticleFields({ ...articleFields, volume: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Numéro</Label>
-                <Input placeholder="Ex: 3" value={articleFields.number} onChange={(e) => setArticleFields({ ...articleFields, number: e.target.value })} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Pages</Label>
-                <Input placeholder="Ex: 123-138" value={articleFields.pages} onChange={(e) => setArticleFields({ ...articleFields, pages: e.target.value })} />
-              </div>
-            </div>
-          )}
-          {category === 'book_chapter' && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Édition</Label>
-                <Input placeholder="Ex: 2e édition" value={bookFields.edition} onChange={(e) => setBookFields({ ...bookFields, edition: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Lieu d’édition</Label>
-                <Input placeholder="Ex: Paris, France" value={bookFields.publication_place} onChange={(e) => setBookFields({ ...bookFields, publication_place: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Nom de l’éditeur</Label>
-                <Input placeholder="Ex: Dunod" value={bookFields.publisher_name} onChange={(e) => setBookFields({ ...bookFields, publisher_name: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Année de publication</Label>
-                <Input type="number" placeholder="Ex: 2025" value={bookFields.publication_year} onChange={(e) => setBookFields({ ...bookFields, publication_year: e.target.value })} />
-              </div>
-            </div>
-          )}
-          {category === 'memoire' && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Auteur</Label>
-                <Input placeholder="Nom complet" value={memoireFields.author_name} onChange={(e) => setMemoireFields({ ...memoireFields, author_name: e.target.value })} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Titre</Label>
-                <Input placeholder="Titre du mémoire / thèse" value={memoireFields.thesis_title} onChange={(e) => setMemoireFields({ ...memoireFields, thesis_title: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Année</Label>
-                <Input type="number" placeholder="Ex: 2025" value={memoireFields.thesis_year} onChange={(e) => setMemoireFields({ ...memoireFields, thesis_year: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Université</Label>
-                <Input placeholder="Ex: Université de Tunis" value={memoireFields.university} onChange={(e) => setMemoireFields({ ...memoireFields, university: e.target.value })} />
-              </div>
-            </div>
-          )}
-          {category === 'conference' && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2 md:col-span-2">
-                <Label>Titre de la présentation</Label>
-                <Input placeholder="Titre de l'intervention" value={conferenceFields.presentation_title} onChange={(e) => setConferenceFields({ ...conferenceFields, presentation_title: e.target.value })} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Titre de la conférence</Label>
-                <Input placeholder="Nom de la conférence" value={conferenceFields.conference_title} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_title: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Année</Label>
-                <Input type="number" placeholder="Ex: 2025" value={conferenceFields.conference_year} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_year: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Lieu</Label>
-                <Input placeholder="Ville, Pays" value={conferenceFields.conference_location} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_location: e.target.value })} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Pages</Label>
-                <Input placeholder="Ex: 45-52" value={conferenceFields.conference_pages} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_pages: e.target.value })} />
-              </div>
-            </div>
-          )}
-            </div>
-          </div>
-
           {/* Member Search */}
           <div className="space-y-2" ref={memberSearchRef}>
             <Label className="flex items-center gap-2">
@@ -536,7 +499,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
                       setMemberSearchQuery(query)
                       if (query.trim()) {
                         setShowMemberResults(true)
-                        // Search for members when typing
                         searchMembers(query).then(results => {
                           setMemberSearchResults(results)
                         }).catch(error => {
@@ -548,7 +510,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
                       }
                     }}
                     onFocus={() => {
-                      // Only show results if there's a search query
                       if (memberSearchQuery.trim()) {
                         setShowMemberResults(true)
                       }
@@ -618,7 +579,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
                       setExternalSearchQuery(query)
                       if (query.trim()) {
                         setShowExternalResults(true)
-                        // Search for externals when typing
                         searchExternals(query).then(results => {
                           setExternalSearchResults(results)
                         }).catch(error => {
@@ -630,7 +590,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
                       }
                     }}
                     onFocus={() => {
-                      // Only show results if there's a search query
                       if (externalSearchQuery.trim()) {
                         setShowExternalResults(true)
                       }
@@ -639,15 +598,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
                     className="pl-10"
                   />
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowExternalMemberForm(true)}
-                  className="whitespace-nowrap bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Ajouter un profil
-                </Button>
               </div>
               
               {showExternalResults && externalSearchResults.length > 0 && (
@@ -696,7 +646,7 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
-              Fichiers joints
+              Ajouter des fichiers
             </Label>
             <div className="flex gap-2">
               <Button
@@ -744,151 +694,15 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
           {/* Submit Buttons */}
           <div className="flex gap-4 pt-4">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Création..." : "Créer la publication"}
+              {isSubmitting ? "Mise à jour..." : "Mettre à jour la publication"}
             </Button>
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Annuler
-              </Button>
-            )}
+            <Button type="button" variant="outline" onClick={onClose}>
+              Annuler
+            </Button>
           </div>
         </form>
-      </CardContent>
-      
-      {/* External Member Form Modal */}
-      {showExternalMemberForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Ajouter un profil externe</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowExternalMemberForm(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <form onSubmit={handleSubmitExternalMember} className="space-y-4">
-              {/* Name */}
-              <div className="space-y-2">
-                <Label htmlFor="externalName">Nom complet *</Label>
-                <Input
-                  id="externalName"
-                  value={externalMemberForm.name}
-                  onChange={(e) => setExternalMemberForm(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Nom et prénom..."
-                  required
-                />
-              </div>
-              
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="externalEmail">Email *</Label>
-                <Input
-                  id="externalEmail"
-                  type="email"
-                  value={externalMemberForm.email}
-                  onChange={(e) => setExternalMemberForm(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="email@exemple.com"
-                  required
-                />
-              </div>
-              
-              {/* CV Upload */}
-              <div className="space-y-2">
-                <Label htmlFor="externalCV">CV (PDF)</Label>
-                <Input
-                  id="externalCV"
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setExternalMemberForm(prev => ({ ...prev, cv: file }))
-                  }}
-                  className="cursor-pointer"
-                />
-                <p className="text-xs text-gray-500">Formats acceptés: PDF, DOC, DOCX</p>
-                {externalMemberForm.cv && (
-                  <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-md">
-                    <FileText className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm text-blue-800">{externalMemberForm.cv.name}</span>
-                    <span className="text-xs text-blue-600">
-                      ({(externalMemberForm.cv.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setExternalMemberForm(prev => ({ ...prev, cv: null }))}
-                      className="text-blue-600 hover:text-blue-800 ml-auto"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-              
-              {/* Profile Picture Upload */}
-              <div className="space-y-2">
-                <Label htmlFor="externalProfilePic">Photo de profil</Label>
-                <Input
-                  id="externalProfilePic"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    setExternalMemberForm(prev => ({ ...prev, profilePic: file }))
-                  }}
-                  className="cursor-pointer"
-                />
-                <p className="text-xs text-gray-500">Formats acceptés: JPG, PNG, GIF</p>
-                {externalMemberForm.profilePic && (
-                  <div className="flex items-center gap-2 p-2 bg-green-50 rounded-md">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <User className="h-4 w-4 text-green-600" />
-                    </div>
-                    <span className="text-sm text-green-800">{externalMemberForm.profilePic.name}</span>
-                    <span className="text-xs text-green-600">
-                      ({(externalMemberForm.profilePic.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setExternalMemberForm(prev => ({ ...prev, profilePic: null }))}
-                      className="text-green-600 hover:text-green-800 ml-auto"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-              
-              {/* Submit Buttons */}
-              <div className="flex gap-3 pt-4">
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  {isSubmitting ? "Création..." : "Créer le profil"}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setShowExternalMemberForm(false)}
-                  className="flex-1"
-                >
-                  Annuler
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </Card>
+      </DialogContent>
+    </Dialog>
   )
 }
+

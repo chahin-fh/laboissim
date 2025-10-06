@@ -20,18 +20,32 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const { login } = useAuth()
+  const { login, user, loading: authLoading } = useAuth()
   const router = useRouter()
 
+  // Redirect if user is already logged in
   useEffect(() => {
-    // Check for Google OAuth error
-    const searchParams = new URLSearchParams(window.location.search)
-    const googleError = searchParams.get('error')
-    const errorMessage = searchParams.get('message')
-    if (googleError === 'google') {
-      setError(errorMessage || 'Une erreur est survenue lors de la connexion avec Google')
+    if (user && !authLoading) {
+      router.push("/dashboard")
     }
-  }, [])
+  }, [user, authLoading, router])
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/20 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Vérification de l'authentification...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render login form if user is already authenticated
+  if (user) {
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -153,7 +167,7 @@ export default function LoginPage() {
 
             {/* Google Login Button */}
             <div className="mt-6 flex flex-col items-center">
-              <a href="https://laboissim.onrender.com/auth/google/simple/" className="w-full">
+              <a href="http://localhost:8000/auth/login/google-oauth2/" className="w-full">
                 <Button
                   type="button"
                   variant="outline"
