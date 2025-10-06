@@ -14,9 +14,15 @@ export interface SiteContent {
     publications: number
     awards: number
     events: number
+    researchersLabel?: string
+    publicationsLabel?: string
+    awardsLabel?: string
+    eventsLabel?: string
   }
   about: {
     teamName: string
+    title?: string
+    subtitle?: string
     description: string
     mission: string
     history: {
@@ -58,6 +64,39 @@ export interface SiteContent {
   logo: {
     text: string
     subtitle: string
+    imageUrl: string
+  }
+  navigation: {
+    home: string
+    about: string
+    projects: string
+    publications: string
+    events: string
+    contact: string
+    login: string
+    register: string
+    dashboard: string
+    profile: string
+    logout: string
+  }
+  sections: {
+    projects: {
+      title: string
+      subtitle: string
+    }
+    publications: {
+      title: string
+      subtitle: string
+    }
+    events: {
+      title: string
+      subtitle: string
+    }
+  }
+  meta: {
+    title: string
+    description: string
+    keywords: string
   }
   footer: {
     researchDomains: string[]
@@ -82,9 +121,15 @@ export const defaultContent: SiteContent = {
     publications: 156,
     awards: 15,
     events: 52,
+    researchersLabel: "Chercheurs",
+    publicationsLabel: "Publications",
+    awardsLabel: "Prix",
+    eventsLabel: "Événements",
   },
   about: {
     teamName: "Équipe de Recherche Excellence",
+    title: "À propos de nous",
+    subtitle: "Notre équipe",
     description: "Une équipe pluridisciplinaire dédiée à l'innovation scientifique",
     mission: "Transformer les découvertes scientifiques en solutions concrètes pour la société",
     history: {
@@ -166,6 +211,39 @@ export const defaultContent: SiteContent = {
   logo: {
     text: "Research Excellence",
     subtitle: "Laboratoire d'Innovation",
+    imageUrl: "",
+  },
+  navigation: {
+    home: "Accueil",
+    about: "À propos",
+    projects: "Projets",
+    publications: "Publications",
+    events: "Événements",
+    contact: "Contact",
+    login: "Connexion",
+    register: "S'inscrire",
+    dashboard: "Tableau de bord",
+    profile: "Profil",
+    logout: "Déconnexion",
+  },
+  sections: {
+    projects: {
+      title: "Nos Projets",
+      subtitle: "Découvrez nos projets de recherche innovants",
+    },
+    publications: {
+      title: "Publications",
+      subtitle: "Nos contributions scientifiques",
+    },
+    events: {
+      title: "Événements",
+      subtitle: "Conférences, séminaires et ateliers",
+    },
+  },
+  meta: {
+    title: "Research Excellence - Laboratoire d'Innovation",
+    description: "Laboratoire de recherche avancée dédié à l'innovation scientifique",
+    keywords: "recherche, innovation, science, laboratoire",
   },
   footer: {
     researchDomains: ["", "", "", "", ""],
