@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: userData.email,
             name: userData.username,
             password: "",
-            role: userData.role || (userData.is_staff || userData.is_superuser ? "admin" : "member"),
+            role: userData.is_staff || userData.is_superuser ? "admin" : "member",
             status: "active",
             lastLogin: new Date().toISOString(),
             date_joined: userData.date_joined || new Date().toISOString(),
@@ -377,10 +377,21 @@ const updateUserRole = async (
   userId: string, // Changed to string to match User.id type
   newRole: "member" | "admin" | "chef_d_equipe"
 ) => {
+  const token = localStorage.getItem("token"); // Retrieve token from localStorage
+
+  if (!token) {
+    console.error("No authentication token available. Please log in.");
+    toast({ title: "Authentification requise", description: "Veuillez vous reconnecter.", variant: "destructive" });
+    return;
+  }
+
   try {
     const response = await fetch(`https://laboissim.onrender.com/api/admin/update-user-role/${userId}/`, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
       body: JSON.stringify({ role: newRole }),
     });
 
@@ -397,7 +408,6 @@ const updateUserRole = async (
       setUser((prev) => (prev && prev.id === userId ? { ...prev, role: newRole } : prev));
       toast({ title: "Succès", description: data.message || "Rôle mis à jour avec succès" });
     } else {
-      console.error("Role update failed:", response.status, data);
       toast({ title: "Échec", description: data.error || data.detail || "Erreur lors de la mise à jour du rôle", variant: "destructive" });
     }
   } catch (error) {

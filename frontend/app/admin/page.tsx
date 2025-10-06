@@ -171,7 +171,7 @@ export default function AdminPage() {
   }
 
   // Event management functions
-  async function fetchEvents() {
+  const fetchEvents = async () => {
     try {
       const eventsData = await getEvents()
       setEvents(eventsData)
@@ -721,8 +721,6 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        {userItem.id !== user.id && (
-                          <>
                         <Select
                           value={userItem.role}
                           onValueChange={async (role: "member" | "admin" | "chef_d_equipe") => {
@@ -838,8 +836,6 @@ export default function AdminPage() {
                             <Trash2 className="h-4 w-4" />
                           )}
                         </Button>
-                          </>
-                        )}
                       </div>
                     </div>
                     ))

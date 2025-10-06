@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -27,32 +27,8 @@ export default function SignupPage() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const { signup, user, loading: authLoading } = useAuth()
+  const { signup } = useAuth()
   const router = useRouter()
-
-  // Redirect if user is already logged in
-  useEffect(() => {
-    if (user && !authLoading) {
-      router.push("/dashboard")
-    }
-  }, [user, authLoading, router])
-
-  // Show loading while checking authentication
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Vérification de l'authentification...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Don't render signup form if user is already authenticated
-  if (user) {
-    return null
-  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({

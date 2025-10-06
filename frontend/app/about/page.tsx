@@ -1,24 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Users, History, Lightbulb, User, Mail, MapPin, Building } from "lucide-react"
 import { useContentManager } from "@/lib/content-manager"
 import { useTeamMembers, TeamMember } from "@/lib/team-service"
-import { Suspense } from "react"
-import { AboutTabs } from "./tabs"
-import Loading from "../loading"
 
-export default function AboutPage() {
+function AboutPageContent() {
   const { content } = useContentManager()
   const { members, loading, error } = useTeamMembers()
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
+  const searchParams = useSearchParams()
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState("history")
 
   useEffect(() => {
     const tab = searchParams.get("tab")
@@ -72,16 +72,15 @@ export default function AboutPage() {
         </motion.div>
 
         {/* Tabs Navigation */}
-        <Suspense fallback={<Loading />}>
-          <AboutTabs>
-            {{
-              history: (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.6 }}
-                  className="grid md:grid-cols-2 gap-8 items-center"
-                >
+        <Tabs value={activeTab} defaultValue="history" className="mb-16">
+          {/* History Tab */}
+          <TabsContent value="history">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6 }}
+              className="grid md:grid-cols-2 gap-8 items-center"
+            >
               <div>
                 <h2 className="text-3xl font-bold text-gray-800 mb-6">{content.about.history.title}</h2>
                 <div className="space-y-4 text-gray-600">
@@ -254,14 +253,16 @@ export default function AboutPage() {
                 </motion.div>
               )}
             </motion.div>
-              ),
-              expertise: (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.6 }}
-                  className="space-y-12"
-                >
+          </TabsContent>
+
+          {/* Expertise Tab */}
+          <TabsContent value="expertise">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6 }}
+              className="space-y-12"
+            >
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-gray-800 mb-4">Nos Domaines d'Expertise</h2>
                 <p className="text-xl text-gray-600 max-w-3xl mx-auto">
@@ -308,11 +309,20 @@ export default function AboutPage() {
               </div>
             </motion.div>
           </TabsContent>
-              )
-            }}
-          </AboutTabs>
-        </Suspense>
+        </Tabs>
       </div>
     </div>
+  )
+}
+
+export default function AboutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 pt-20 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    }>
+      <AboutPageContent />
+    </Suspense>
   )
 }

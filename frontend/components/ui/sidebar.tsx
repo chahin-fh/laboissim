@@ -650,15 +650,9 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  // Deterministic width between 50% to 90% to avoid SSR/CSR mismatch.
+  // Random width between 50 to 90%.
   const width = React.useMemo(() => {
-    // simple seeded value based on component mount order
-    // Using a constant seed keeps SSR and CSR consistent
-    let seed = 2025
-    seed = (seed * 1664525 + 1013904223) % 4294967296
-    const rand01 = seed / 4294967296
-    const pct = Math.floor(rand01 * 40) + 50
-    return `${pct}%`
+    return `${Math.floor(Math.random() * 40) + 50}%`
   }, [])
 
   return (

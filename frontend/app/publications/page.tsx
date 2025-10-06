@@ -7,60 +7,18 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Search, BookOpen, FileText, Users, Award, ExternalLink, Download, Eye, Tag, UserPlus, Table } from "lucide-react"
+import { Search, BookOpen, FileText, Users, Award, ExternalLink, Download, Eye } from "lucide-react"
 import { getPublications } from "@/lib/publication-service"
-import PublicationDetailModal from "@/components/publication-detail-modal"
-import { Table as UITable, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 interface PublicationResponse {
   id: string;
   title: string;
   abstract: string;
   posted_at: string;
-  category?: 'article' | 'book_chapter' | 'memoire' | 'conference';
-  // Article
-  journal?: string | null;
-  publication_year?: number | null;
-  volume?: string | null;
-  number?: string | null;
-  pages?: string | null;
-  // Book / Chapter
-  edition?: string | null;
-  publication_place?: string | null;
-  publisher_name?: string | null;
-  // Memoire
-  author_name?: string | null;
-  thesis_title?: string | null;
-  thesis_year?: number | null;
-  university?: string | null;
-  // Conference
-  presentation_title?: string | null;
-  conference_title?: string | null;
-  conference_year?: number | null;
-  conference_location?: string | null;
-  conference_pages?: string | null;
   posted_by?: {
     id: string;
     name: string;
   };
-  tagged_members?: Array<{
-    id: string;
-    name: string;
-    username: string;
-  }>;
-  tagged_externals?: Array<{
-    id: string;
-    name: string;
-    email: string;
-  }>;
-  attached_files?: Array<{
-    id: string;
-    name: string;
-    file: string;
-    file_type: string;
-    size: number;
-  }>;
-  keywords?: string[];
 }
 
 export default function PublicationsPage() {
@@ -69,22 +27,19 @@ export default function PublicationsPage() {
   const [selectedYear, setSelectedYear] = useState("all")
   const [dynamicPublications, setDynamicPublications] = useState<PublicationResponse[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedPublication, setSelectedPublication] = useState<PublicationResponse | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
-
-  const fetchPublications = async () => {
-    try {
-      const publications = await getPublications()
-      setDynamicPublications(publications)
-    } catch (error) {
-      console.error('Error fetching publications:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   useEffect(() => {
+    const fetchPublications = async () => {
+      try {
+        const publications = await getPublications()
+        setDynamicPublications(publications)
+      } catch (error) {
+        console.error('Error fetching publications:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchPublications()
   }, [])
 
@@ -102,60 +57,23 @@ export default function PublicationsPage() {
     },
   }
 
-  const handlePublicationClick = (publication: PublicationResponse) => {
-    setSelectedPublication(publication)
-    setIsModalOpen(true)
-  }
+  // Transform dynamic publications to match the display format
+  const transformedDynamicPublications = dynamicPublications.map((pub) => ({
+    id: pub.id,
+    title: pub.title,
+    authors: [pub.posted_by?.name || "Utilisateur"],
+    journal: "Publication Équipe", // Since we don't have journal field anymore
+    year: new Date(pub.posted_at).getFullYear(),
+    type: "Article",
+    abstract: pub.abstract,
+    keywords: ["Recherche", "Équipe"], // Default keywords since we don't have this field
+    doi: `internal.${pub.id}`,
+    url: "#",
+    citations: 0, // Default since we don't track citations for internal publications
+    pdf: "#",
+  }))
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setSelectedPublication(null)
-  }
 
-  // Transform dynamic publications to match the display format and new schema
-  const transformedDynamicPublications = dynamicPublications.map((pub) => {
-    const type =
-      pub.category === 'article' ? 'Article' :
-      pub.category === 'book_chapter' ? 'Livre / Chapitre' :
-      pub.category === 'memoire' ? 'Mémoires' :
-      pub.category === 'conference' ? 'Conférence' : 'Publication'
-
-    const year =
-      pub.category === 'article' ? (pub.publication_year ?? new Date(pub.posted_at).getFullYear()) :
-      pub.category === 'book_chapter' ? (pub.publication_year ?? new Date(pub.posted_at).getFullYear()) :
-      pub.category === 'memoire' ? (pub.thesis_year ?? new Date(pub.posted_at).getFullYear()) :
-      pub.category === 'conference' ? (pub.conference_year ?? new Date(pub.posted_at).getFullYear()) :
-      new Date(pub.posted_at).getFullYear()
-
-    const firstFileUrl = pub.attached_files && pub.attached_files.length > 0 ? pub.attached_files[0].file : '#'
-    const authors = [pub.posted_by?.name || 'Utilisateur', ...(pub.tagged_members?.map(m => m.name) || [])]
-
-    return {
-      id: pub.id,
-      title: pub.title,
-      authors,
-      journal: pub.category === 'article' ? (pub.journal || '—') : (
-        pub.category === 'book_chapter' ? (pub.publisher_name || '—') : (
-          pub.category === 'memoire' ? (pub.university || '—') : (
-            pub.category === 'conference' ? (pub.conference_title || '—') : '—'
-          )
-        )
-      ),
-      year,
-      type,
-      abstract: pub.abstract,
-      keywords: pub.keywords || [],
-      doi: `internal.${pub.id}`,
-      url: firstFileUrl,
-      citations: 0,
-      pdf: firstFileUrl,
-      // Keep raw fields for detailed rendering
-      ...pub,
-      tagged_members: pub.tagged_members || [],
-      tagged_externals: pub.tagged_externals || [],
-      attached_files: pub.attached_files || [],
-    }
-  })
 
   // Combine dynamic and static publications
   const allPublications = [...transformedDynamicPublications]
@@ -165,9 +83,7 @@ export default function PublicationsPage() {
       pub.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pub.authors.join(" ").toLowerCase().includes(searchQuery.toLowerCase()) ||
       pub.abstract.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pub.keywords.join(" ").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pub.tagged_members.map(m => m.name).join(" ").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pub.tagged_externals.map(e => e.name).join(" ").toLowerCase().includes(searchQuery.toLowerCase())
+      pub.keywords.join(" ").toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesType = selectedType === "all" || pub.type === selectedType
     const matchesYear = selectedYear === "all" || pub.year.toString() === selectedYear
@@ -298,24 +214,6 @@ export default function PublicationsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={viewMode === 'cards' ? 'default' : 'outline'}
-                      onClick={() => setViewMode('cards')}
-                      className="flex items-center gap-2"
-                    >
-                      <BookOpen className="h-4 w-4" />
-                      Cartes
-                    </Button>
-                    <Button
-                      variant={viewMode === 'table' ? 'default' : 'outline'}
-                      onClick={() => setViewMode('table')}
-                      className="flex items-center gap-2"
-                    >
-                      <Table className="h-4 w-4" />
-                      Voir tous
-                    </Button>
-                  </div>
                 </div>
               </div>
             </CardContent>
@@ -325,257 +223,85 @@ export default function PublicationsPage() {
         {/* Publications List */}
         <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-6">
           {filteredPublications.length > 0 ? (
-            viewMode === 'cards' ? (
-              filteredPublications.map((publication, index) => (
-                <motion.div key={publication.id} variants={fadeInUp}>
-                  <Card 
-                    className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
-                    onClick={() => handlePublicationClick(publication)}
-                  >
-                    <CardHeader>
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div className="flex-grow">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge
-                              className={`${
-                                publication.type === "Article"
-                                  ? "bg-violet-600"
-                                  : publication.type === "Review"
-                                    ? "bg-electric-600"
-                                    : "bg-green-600"
-                              } text-white`}
-                            >
-                              {publication.type}
-                            </Badge>
-                            <Badge variant="outline" className="border-gray-300 text-gray-600">
-                              {publication.year}
-                            </Badge>
-                          </div>
-                          <CardTitle className="text-xl text-gray-800 mb-2 hover:text-violet-600 transition-colors cursor-pointer">
-                            {publication.title}
-                          </CardTitle>
-                          <p className="text-gray-600 mb-2">
-                            <strong>Auteurs:</strong> {publication.authors.join(", ")}
-                            {publication.posted_by && (
-                              <span className="ml-2">
-                                (Principal:{" "}
-                                <span 
-                                  className="text-blue-600 hover:text-blue-800 cursor-pointer underline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.location.href = `/profile/${publication.posted_by!.id}`;
-                                  }}
-                                >
-                                  {publication.posted_by.name}
-                                </span>
-                                )
-                              </span>
-                            )}
-                          </p>
-                          {/* Category-specific metadata */}
-                          <div className="grid md:grid-cols-2 gap-2 text-sm text-gray-600 mb-3">
-                            {publication.type === 'Article' && (
-                              <>
-                                <div><strong>Journal:</strong> {publication.journal || '—'}</div>
-                                <div><strong>Volume/Numéro:</strong> {(publication as any).volume || '—'}/{(publication as any).number || '—'}</div>
-                                <div className="md:col-span-2"><strong>Pages:</strong> {(publication as any).pages || '—'}</div>
-                              </>
-                            )}
-                            {publication.type === 'Livre / Chapitre' && (
-                              <>
-                                <div><strong>Édition:</strong> {(publication as any).edition || '—'}</div>
-                                <div><strong>Lieu d'édition:</strong> {(publication as any).publication_place || '—'}</div>
-                                <div><strong>Éditeur:</strong> {(publication as any).publisher_name || '—'}</div>
-                              </>
-                            )}
-                            {publication.type === 'Mémoires' && (
-                              <>
-                                <div><strong>Auteur:</strong> {(publication as any).author_name || '—'}</div>
-                                <div><strong>Université:</strong> {(publication as any).university || '—'}</div>
-                                <div className="md:col-span-2"><strong>Titre:</strong> {(publication as any).thesis_title || '—'}</div>
-                              </>
-                            )}
-                            {publication.type === 'Conférence' && (
-                              <>
-                                <div className="md:col-span-2"><strong>Présentation:</strong> {(publication as any).presentation_title || '—'}</div>
-                                <div className="md:col-span-2"><strong>Conférence:</strong> {(publication as any).conference_title || '—'}</div>
-                                <div><strong>Lieu:</strong> {(publication as any).conference_location || '—'}</div>
-                                <div><strong>Pages:</strong> {(publication as any).conference_pages || '—'}</div>
-                              </>
-                            )}
-                          </div>
-                          <p className="text-gray-700 leading-relaxed mb-4">{publication.abstract}</p>
-
-                          {/* Keywords */}
-                          {publication.keywords && publication.keywords.length > 0 && (
-                            <div className="mb-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Tag className="h-4 w-4 text-gray-500" />
-                                <span className="text-sm font-medium text-gray-600">Mots-clés:</span>
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {publication.keywords.map((keyword, i) => (
-                                  <Badge key={i} variant="outline" className="border-violet-200 text-violet-600">
-                                    {keyword}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Tagged Members */}
-                          {publication.tagged_members && publication.tagged_members.length > 0 && (
-                            <div className="mb-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Users className="h-4 w-4 text-gray-500" />
-                                <span className="text-sm font-medium text-gray-600">Membres tagués:</span>
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {publication.tagged_members.map((member) => (
-                                  <Badge 
-                                    key={member.id} 
-                                    variant="outline" 
-                                    className="border-blue-200 text-blue-600 hover:bg-blue-100 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      // Navigate to member profile
-                                      window.location.href = `/profile/${member.id}`;
-                                    }}
-                                  >
-                                    {member.name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Tagged Externals */}
-                          {publication.tagged_externals && publication.tagged_externals.length > 0 && (
-                            <div className="mb-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <UserPlus className="h-4 w-4 text-gray-500" />
-                                <span className="text-sm font-medium text-gray-600">Profils externes tagués:</span>
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {publication.tagged_externals.map((external) => (
-                                  <Badge 
-                                    key={external.id} 
-                                    variant="outline" 
-                                    className="border-green-200 text-green-600 hover:bg-green-100 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      // Navigate to external profile page
-                                      window.location.href = `/external-profile/${external.id}`;
-                                    }}
-                                  >
-                                    {external.name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Attached Files */}
-                          {publication.attached_files && publication.attached_files.length > 0 && (
-                            <div className="mb-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <FileText className="h-4 w-4 text-gray-500" />
-                                <span className="text-sm font-medium text-gray-600">Fichiers joints:</span>
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {publication.attached_files.map((file) => (
-                                  <Badge key={file.id} variant="outline" className="border-orange-200 text-orange-600">
-                                    <FileText className="h-3 w-3 mr-1" />
-                                    {file.name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+            filteredPublications.map((publication, index) => (
+              <motion.div key={publication.id} variants={fadeInUp}>
+                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardHeader>
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                      <div className="flex-grow">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge
+                            className={`${
+                              publication.type === "Article"
+                                ? "bg-violet-600"
+                                : publication.type === "Review"
+                                  ? "bg-electric-600"
+                                  : "bg-green-600"
+                            } text-white`}
+                          >
+                            {publication.type}
+                          </Badge>
+                          <Badge variant="outline" className="border-gray-300 text-gray-600">
+                            {publication.year}
+                          </Badge>
                         </div>
-                        <div className="flex flex-col items-end space-y-2 min-w-fit">
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-violet-600">{publication.citations}</div>
-                            <div className="text-sm text-gray-500">Citations</div>
-                          </div>
+                        <CardTitle className="text-xl text-gray-800 mb-2 hover:text-violet-600 transition-colors cursor-pointer">
+                          {publication.title}
+                        </CardTitle>
+                        <p className="text-gray-600 mb-2">
+                          <strong>Auteurs:</strong> {publication.authors.join(", ")}
+                        </p>
+                        <p className="text-gray-600 mb-3">
+                          <strong>Journal:</strong> {publication.journal}
+                        </p>
+                        <p className="text-gray-700 leading-relaxed">{publication.abstract}</p>
+                      </div>
+                      <div className="flex flex-col items-end space-y-2 min-w-fit">
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-violet-600">{publication.citations}</div>
+                          <div className="text-sm text-gray-500">Citations</div>
                         </div>
                       </div>
-                    </CardHeader>
-                  </Card>
-                </motion.div>
-              ))
-            ) : (
-              /* Table View */
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardContent className="p-0">
-                  <UITable>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Titre</TableHead>
-                        <TableHead>Auteur</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Document</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredPublications.map((publication) => (
-                        <TableRow key={publication.id}>
-                          <TableCell className="font-medium max-w-xs">
-                            <div className="truncate" title={publication.title}>
-                              {publication.title}
-                            </div>
-                            <Badge variant="outline" className="mt-1 text-xs">
-                              {publication.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {publication.posted_by?.name || 'Utilisateur'}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(publication.posted_at).toLocaleDateString('fr-FR')}
-                          </TableCell>
-                          <TableCell>
-                            {publication.attached_files && publication.attached_files.length > 0 ? (
-                              <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-orange-600" />
-                                <span className="text-sm">{publication.attached_files[0].name}</span>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePublicationClick(publication)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {publication.keywords.map((keyword, i) => (
+                        <Badge key={i} variant="outline" className="border-violet-200 text-violet-600">
+                          {keyword}
+                        </Badge>
                       ))}
-                    </TableBody>
-                  </UITable>
-                </CardContent>
-              </Card>
-            )
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        variant="outline"
+                        className="border-violet-600 text-violet-600 hover:bg-violet-600 hover:text-white"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Voir l'article
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="border-electric-600 text-electric-600 hover:bg-electric-600 hover:text-white"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Télécharger PDF
+                      </Button>
+                      <Button variant="ghost" className="text-gray-600 hover:text-violet-600">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        DOI: {publication.doi}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))
           ) : (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">Aucune publication trouvée avec ces critères.</p>
             </div>
           )}
         </motion.div>
-
-        {/* Publication Detail Modal */}
-        {selectedPublication && (
-          <PublicationDetailModal
-            publication={selectedPublication}
-            isOpen={isModalOpen}
-            onClose={handleCloseModal}
-          />
-        )}
       </div>
     </div>
   )

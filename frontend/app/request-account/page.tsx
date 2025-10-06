@@ -122,10 +122,20 @@ export default function RequestAccountPage() {
         transition={{ duration: 0.6 }}
         className="w-full max-w-md"
       >
-        <br />
-        <br />
-        <br />
-        
+        {/* Back Button */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-6"
+        >
+          <Link href="/login">
+            <Button variant="ghost" className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour à la connexion
+            </Button>
+          </Link>
+        </motion.div>
 
         <Card className="card-professional border-0 shadow-xl">
           <CardHeader className="text-center pb-8">

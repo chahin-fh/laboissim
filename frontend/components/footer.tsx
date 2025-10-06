@@ -14,15 +14,8 @@ export function Footer() {
   const { content } = useContentManager()
   const footer = content.footer || {}
   const contact = content.contact || {}
-  // Normalize researchDomains to a string array
-  const normalizedDomains = (() => {
-    const raw = (footer as any)?.researchDomains
-    if (Array.isArray(raw)) return raw
-    if (typeof raw === "string") return raw.split(",").map((s) => s.trim()).filter(Boolean)
-    return []
-  })()
-  const researchDomains = normalizedDomains.length > 0
-    ? Array.from(new Set(normalizedDomains.filter((v) => typeof v === "string" && v.trim())))
+  const researchDomains = footer.researchDomains && footer.researchDomains.length > 0
+    ? footer.researchDomains.filter(Boolean)
     : [
         "Intelligence Artificielle",
         "Biotechnologie",
@@ -85,6 +78,7 @@ export function Footer() {
             <ul className="space-y-3">
               {[
                 { href: "/about", label: "À propos" },
+                { href: "/projects", label: "Projets" },
                 { href: "/publications", label: "Publications" },
                 { href: "/events", label: "Événements" },
                 { href: "/contact", label: "Contact" },
