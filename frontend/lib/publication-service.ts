@@ -72,6 +72,30 @@ export async function createPublication(data: CreatePublicationData): Promise<Pu
   return response.json();
 }
 
+export async function updatePublication(id: string, data: CreatePublicationData): Promise<PublicationResponse> {
+  const token = localStorage.getItem('token');
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`https://laboissim.onrender.com/api/publications/${id}/`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Update publication error:', response.status, errorText);
+    throw new Error(`Failed to update publication: ${response.status} ${errorText}`);
+  }
+
+  return response.json();
+}
+
 export async function getPublications(): Promise<PublicationResponse[]> {
   try {
     console.log('Attempting to fetch publications from /api/publications/');
