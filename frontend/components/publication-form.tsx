@@ -8,8 +8,6 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { X, Search, Upload, Plus, Users, UserPlus, FileText, Tag, User } from "lucide-react"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
 import { searchMembers, searchExternals, createPublication } from "@/lib/publication-service"
 import { createExternalMember } from "@/lib/external-member-service"
 import { uploadFile } from "@/lib/file-service"
@@ -38,35 +36,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
   const [abstract, setAbstract] = useState("")
   const [keywords, setKeywords] = useState<string[]>([])
   const [keywordInput, setKeywordInput] = useState("")
-  const [category, setCategory] = useState<'article' | 'book_chapter' | 'memoire' | 'conference'>('article')
-
-  // Category-specific fields
-  const [articleFields, setArticleFields] = useState({
-    journal: '',
-    publication_year: '',
-    volume: '',
-    number: '',
-    pages: '',
-  })
-  const [bookFields, setBookFields] = useState({
-    edition: '',
-    publication_place: '',
-    publisher_name: '',
-    publication_year: '',
-  })
-  const [memoireFields, setMemoireFields] = useState({
-    author_name: '',
-    thesis_title: '',
-    thesis_year: '',
-    university: '',
-  })
-  const [conferenceFields, setConferenceFields] = useState({
-    presentation_title: '',
-    conference_title: '',
-    conference_year: '',
-    conference_location: '',
-    conference_pages: '',
-  })
   
   // Member search
   const [memberSearchQuery, setMemberSearchQuery] = useState("")
@@ -261,39 +230,13 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
         }
       }
 
-      const publicationData: any = {
+      const publicationData = {
         title: title.trim(),
         abstract: abstract.trim(),
-        category,
         tagged_members: selectedMembers.map(m => m.id),
         tagged_externals: selectedExternals.map(e => e.id),
         keywords: keywords,
         attached_files: uploadedFileIds,
-      }
-
-      // attach category-specific fields
-      if (category === 'article') {
-        publicationData.journal = articleFields.journal || undefined
-        publicationData.publication_year = articleFields.publication_year ? Number(articleFields.publication_year) : undefined
-        publicationData.volume = articleFields.volume || undefined
-        publicationData.number = articleFields.number || undefined
-        publicationData.pages = articleFields.pages || undefined
-      } else if (category === 'book_chapter') {
-        publicationData.edition = bookFields.edition || undefined
-        publicationData.publication_place = bookFields.publication_place || undefined
-        publicationData.publisher_name = bookFields.publisher_name || undefined
-        publicationData.publication_year = bookFields.publication_year ? Number(bookFields.publication_year) : undefined
-      } else if (category === 'memoire') {
-        publicationData.author_name = memoireFields.author_name || undefined
-        publicationData.thesis_title = memoireFields.thesis_title || undefined
-        publicationData.thesis_year = memoireFields.thesis_year ? Number(memoireFields.thesis_year) : undefined
-        publicationData.university = memoireFields.university || undefined
-      } else if (category === 'conference') {
-        publicationData.presentation_title = conferenceFields.presentation_title || undefined
-        publicationData.conference_title = conferenceFields.conference_title || undefined
-        publicationData.conference_year = conferenceFields.conference_year ? Number(conferenceFields.conference_year) : undefined
-        publicationData.conference_location = conferenceFields.conference_location || undefined
-        publicationData.conference_pages = conferenceFields.conference_pages || undefined
       }
 
       console.log('Publication data being sent:', publicationData)
@@ -309,11 +252,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
       setTitle("")
       setAbstract("")
       setKeywords([])
-      setCategory('article')
-      setArticleFields({ journal: '', publication_year: '', volume: '', number: '', pages: '' })
-      setBookFields({ edition: '', publication_place: '', publisher_name: '', publication_year: '' })
-      setMemoireFields({ author_name: '', thesis_title: '', thesis_year: '', university: '' })
-      setConferenceFields({ presentation_title: '', conference_title: '', conference_year: '', conference_location: '', conference_pages: '' })
       setSelectedMembers([])
       setSelectedExternals([])
       setSelectedFiles([])
@@ -338,24 +276,9 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
           <FileText className="h-5 w-5" />
           Nouvelle Publication
         </CardTitle>
-        <p className="text-sm text-muted-foreground">Ajoutez une publication et reliez-y des membres, externes et fichiers.</p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Category */}
-          <div className="space-y-3">
-            <Label>Catégorie</Label>
-            <Tabs value={category} onValueChange={(v) => setCategory(v as any)}>
-              <TabsList className="flex flex-wrap gap-2">
-                <TabsTrigger value="article">Article</TabsTrigger>
-                <TabsTrigger value="book_chapter">Livre / Chapitre</TabsTrigger>
-                <TabsTrigger value="memoire">Mémoires</TabsTrigger>
-                <TabsTrigger value="conference">Conférence</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-
-          <Separator />
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Titre *</Label>
@@ -375,7 +298,7 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
               id="abstract"
               value={abstract}
               onChange={(e) => setAbstract(e.target.value)}
-              placeholder="Résumé de la publication (contexte, méthodes, résultats, conclusion)..."
+              placeholder="Résumé de la publication..."
               rows={4}
               required
             />
@@ -388,7 +311,7 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
               <Input
                 value={keywordInput}
                 onChange={(e) => setKeywordInput(e.target.value)}
-                placeholder="Ajouter un mot-clé (Entrée pour valider)..."
+                placeholder="Ajouter un mot-clé..."
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
@@ -422,101 +345,6 @@ export function PublicationForm({ onSuccess, onCancel }: PublicationFormProps) {
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Category specific fields */}
-          <div>
-            <h4 className="text-sm font-medium mb-3 text-muted-foreground">Détails spécifiques</h4>
-            <div className="rounded-lg border bg-card p-4">
-          {category === 'article' && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Journal</Label>
-                <Input placeholder="Ex: Nature, Science..." value={articleFields.journal} onChange={(e) => setArticleFields({ ...articleFields, journal: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Année de publication</Label>
-                <Input type="number" placeholder="Ex: 2025" value={articleFields.publication_year} onChange={(e) => setArticleFields({ ...articleFields, publication_year: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Volume</Label>
-                <Input placeholder="Ex: 12" value={articleFields.volume} onChange={(e) => setArticleFields({ ...articleFields, volume: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Numéro</Label>
-                <Input placeholder="Ex: 3" value={articleFields.number} onChange={(e) => setArticleFields({ ...articleFields, number: e.target.value })} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Pages</Label>
-                <Input placeholder="Ex: 123-138" value={articleFields.pages} onChange={(e) => setArticleFields({ ...articleFields, pages: e.target.value })} />
-              </div>
-            </div>
-          )}
-          {category === 'book_chapter' && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Édition</Label>
-                <Input placeholder="Ex: 2e édition" value={bookFields.edition} onChange={(e) => setBookFields({ ...bookFields, edition: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Lieu d’édition</Label>
-                <Input placeholder="Ex: Paris, France" value={bookFields.publication_place} onChange={(e) => setBookFields({ ...bookFields, publication_place: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Nom de l’éditeur</Label>
-                <Input placeholder="Ex: Dunod" value={bookFields.publisher_name} onChange={(e) => setBookFields({ ...bookFields, publisher_name: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Année de publication</Label>
-                <Input type="number" placeholder="Ex: 2025" value={bookFields.publication_year} onChange={(e) => setBookFields({ ...bookFields, publication_year: e.target.value })} />
-              </div>
-            </div>
-          )}
-          {category === 'memoire' && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Auteur</Label>
-                <Input placeholder="Nom complet" value={memoireFields.author_name} onChange={(e) => setMemoireFields({ ...memoireFields, author_name: e.target.value })} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Titre</Label>
-                <Input placeholder="Titre du mémoire / thèse" value={memoireFields.thesis_title} onChange={(e) => setMemoireFields({ ...memoireFields, thesis_title: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Année</Label>
-                <Input type="number" placeholder="Ex: 2025" value={memoireFields.thesis_year} onChange={(e) => setMemoireFields({ ...memoireFields, thesis_year: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Université</Label>
-                <Input placeholder="Ex: Université de Tunis" value={memoireFields.university} onChange={(e) => setMemoireFields({ ...memoireFields, university: e.target.value })} />
-              </div>
-            </div>
-          )}
-          {category === 'conference' && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2 md:col-span-2">
-                <Label>Titre de la présentation</Label>
-                <Input placeholder="Titre de l'intervention" value={conferenceFields.presentation_title} onChange={(e) => setConferenceFields({ ...conferenceFields, presentation_title: e.target.value })} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Titre de la conférence</Label>
-                <Input placeholder="Nom de la conférence" value={conferenceFields.conference_title} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_title: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Année</Label>
-                <Input type="number" placeholder="Ex: 2025" value={conferenceFields.conference_year} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_year: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Lieu</Label>
-                <Input placeholder="Ville, Pays" value={conferenceFields.conference_location} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_location: e.target.value })} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Pages</Label>
-                <Input placeholder="Ex: 45-52" value={conferenceFields.conference_pages} onChange={(e) => setConferenceFields({ ...conferenceFields, conference_pages: e.target.value })} />
-              </div>
-            </div>
-          )}
-            </div>
           </div>
 
           {/* Member Search */}
