@@ -27,7 +27,7 @@ export interface TeamMember {
 
 export async function fetchTeamMembers(): Promise<TeamMember[]> {
   try {
-    const response = await fetch("https://laboissim.onrender.com/api/team-members/", {
+    const response = await fetch("http://localhost:8000/api/team-members/", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

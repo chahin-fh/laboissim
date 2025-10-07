@@ -62,14 +62,24 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 group">
             <motion.div
-              className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg icon-enhanced"
+              className="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg icon-enhanced overflow-hidden"
               whileHover={{
                 boxShadow: "0 8px 25px rgba(99, 102, 241, 0.4)",
                 rotate: [0, 5, -5, 0],
                 transition: { duration: 0.5 },
               }}
             >
-              <span className="text-white font-bold text-lg">R</span>
+              {content.logo.imageUrl ? (
+                <img 
+                  src={content.logo.imageUrl} 
+                  alt="Logo" 
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="w-full h-full gradient-primary rounded-xl flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">R</span>
+                </div>
+              )}
             </motion.div>
             <div className="flex flex-col">
               <span className="font-bold text-lg text-gradient heading-modern">{content.logo.text}</span>
