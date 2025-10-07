@@ -44,7 +44,7 @@ interface UpdateEventData extends Partial<CreateEventData> {
   is_active?: boolean
 }
 
-const API_BASE_URL = 'https://laboissim.onrender.com/api'
+const API_BASE_URL = 'https://laboissim.vercel.app/api'
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
