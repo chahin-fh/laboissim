@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
     if (token) {
       // Try to fetch user profile from backend
-      fetch("https://laboissim.vercel.app/api/user/", {
+      fetch("https://laboissim.onrender.com/api/user/", {
         headers: {
           "Authorization": `Bearer ${token}`,
         },
@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: userData.email,
             name: userData.username,
             password: "",
-            role: userData.role || (userData.is_staff || userData.is_superuser ? "admin" : "member"),
+            role: userData.is_staff || userData.is_superuser ? "admin" : "member",
             status: "active",
             lastLogin: new Date().toISOString(),
             date_joined: userData.date_joined || new Date().toISOString(),
@@ -213,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch("https://laboissim.vercel.app/api/token/email/", {
+      const response = await fetch("https://laboissim.onrender.com/api/token/email/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -226,7 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("token", data.access); // Store JWT token
 
         // Fetch user data from backend
-        const userRes = await fetch("https://laboissim.vercel.app/api/user/", {
+        const userRes = await fetch("https://laboissim.onrender.com/api/user/", {
           headers: {
             "Authorization": `Bearer ${data.access}`,
           },
@@ -284,7 +284,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const banUser = async (userId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.vercel.app'}/api/admin/ban-user/${userId}/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.onrender.com'}/api/admin/ban-user/${userId}/`, {
         method: 'POST',
         headers: getAuthHeaders(),
       })
@@ -316,7 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const unbanUser = async (userId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.vercel.app'}/api/admin/unban-user/${userId}/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.onrender.com'}/api/admin/unban-user/${userId}/`, {
         method: 'POST',
         headers: getAuthHeaders(),
       })
@@ -343,7 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteUser = async (userId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.vercel.app'}/api/admin/delete-user/${userId}/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.onrender.com'}/api/admin/delete-user/${userId}/`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       })
@@ -377,10 +377,21 @@ const updateUserRole = async (
   userId: string, // Changed to string to match User.id type
   newRole: "member" | "admin" | "chef_d_equipe"
 ) => {
+  const token = localStorage.getItem("token"); // Retrieve token from localStorage
+
+  if (!token) {
+    console.error("No authentication token available. Please log in.");
+    toast({ title: "Authentification requise", description: "Veuillez vous reconnecter.", variant: "destructive" });
+    return;
+  }
+
   try {
-    const response = await fetch(`https://laboissim.vercel.app/api/admin/update-user-role/${userId}/`, {
+    const response = await fetch(`https://laboissim.onrender.com/api/admin/update-user-role/${userId}/`, {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
       body: JSON.stringify({ role: newRole }),
     });
 
@@ -397,7 +408,6 @@ const updateUserRole = async (
       setUser((prev) => (prev && prev.id === userId ? { ...prev, role: newRole } : prev));
       toast({ title: "Succès", description: data.message || "Rôle mis à jour avec succès" });
     } else {
-      console.error("Role update failed:", response.status, data);
       toast({ title: "Échec", description: data.error || data.detail || "Erreur lors de la mise à jour du rôle", variant: "destructive" });
     }
   } catch (error) {
@@ -408,7 +418,7 @@ const updateUserRole = async (
 
   const addMessage = async (messageData: Omit<ContactMessage, "id" | "createdAt" | "status">) => {
     try {
-      const response = await fetch("https://laboissim.vercel.app/api/messages/contact/", {
+      const response = await fetch("https://laboissim.onrender.com/api/messages/contact/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -430,7 +440,7 @@ const updateUserRole = async (
 
   const updateMessageStatus = async (messageId: string, status: ContactMessage["status"]) => {
     try {
-      const response = await fetch(`https://laboissim.vercel.app/api/messages/contact/${messageId}/`, {
+      const response = await fetch(`https://laboissim.onrender.com/api/messages/contact/${messageId}/`, {
         method: "PATCH",
         headers: getAuthHeaders(),
         body: JSON.stringify({ status }),
@@ -450,7 +460,7 @@ const updateUserRole = async (
 
   const addAccountRequest = async (requestData: Omit<AccountRequest, "id" | "createdAt" | "status">) => {
     try {
-      const response = await fetch("https://laboissim.vercel.app/api/messages/account-requests/", {
+      const response = await fetch("https://laboissim.onrender.com/api/messages/account-requests/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -472,7 +482,7 @@ const updateUserRole = async (
 
   const updateAccountRequest = async (requestId: string, status: AccountRequest["status"]) => {
     try {
-      const response = await fetch(`https://laboissim.vercel.app/api/messages/account-requests/${requestId}/`, {
+      const response = await fetch(`https://laboissim.onrender.com/api/messages/account-requests/${requestId}/`, {
         method: "PATCH",
         headers: getAuthHeaders(),
         body: JSON.stringify({ status }),
@@ -510,7 +520,7 @@ const updateUserRole = async (
     if (!user) return
 
     try {
-      const response = await fetch("https://laboissim.vercel.app/api/messages/internal/", {
+      const response = await fetch("https://laboissim.onrender.com/api/messages/internal/", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -535,7 +545,7 @@ const updateUserRole = async (
 
   const markMessageAsRead = async (messageId: string) => {
     try {
-      const response = await fetch(`https://laboissim.vercel.app/api/messages/internal/${messageId}/mark_as_read/`, {
+      const response = await fetch(`https://laboissim.onrender.com/api/messages/internal/${messageId}/mark_as_read/`, {
         method: "POST",
         headers: getAuthHeaders(),
       })
@@ -556,7 +566,7 @@ const updateUserRole = async (
     if (!user) return []
     
     try {
-      const response = await fetch(`https://laboissim.vercel.app/api/messages/internal/conversation/?user_id=${userId}`, {
+      const response = await fetch(`https://laboissim.onrender.com/api/messages/internal/conversation/?user_id=${userId}`, {
         headers: getAuthHeaders(),
       })
 
@@ -576,7 +586,7 @@ const updateUserRole = async (
     if (!user) return []
 
     try {
-      const response = await fetch("https://laboissim.vercel.app/api/messages/internal/conversations/", {
+      const response = await fetch("https://laboissim.onrender.com/api/messages/internal/conversations/", {
         headers: getAuthHeaders(),
       })
 
@@ -597,8 +607,8 @@ const updateUserRole = async (
     
     try {
       const url = userId 
-        ? `https://laboissim.vercel.app/api/messages/internal/unread_count/?user_id=${userId}`
-        : "https://laboissim.vercel.app/api/messages/internal/unread_count/"
+        ? `https://laboissim.onrender.com/api/messages/internal/unread_count/?user_id=${userId}`
+        : "https://laboissim.onrender.com/api/messages/internal/unread_count/"
       
       const response = await fetch(url, {
         headers: getAuthHeaders(),
@@ -621,7 +631,7 @@ const updateUserRole = async (
     if (!user || !isTokenValid()) return
     
     try {
-      const response = await fetch("https://laboissim.vercel.app/api/messages/contact/", {
+      const response = await fetch("https://laboissim.onrender.com/api/messages/contact/", {
         headers: getAuthHeaders(),
       })
 
@@ -648,7 +658,7 @@ const updateUserRole = async (
     
     try {
       console.log('Fetching account requests...')
-      const response = await fetch("https://laboissim.vercel.app/api/messages/account-requests/", {
+      const response = await fetch("https://laboissim.onrender.com/api/messages/account-requests/", {
         headers: getAuthHeaders(),
       })
 
@@ -675,7 +685,7 @@ const updateUserRole = async (
     if (!user || !isTokenValid()) return
     
     try {
-      const response = await fetch("https://laboissim.vercel.app/api/messages/internal/", {
+      const response = await fetch("https://laboissim.onrender.com/api/messages/internal/", {
         headers: getAuthHeaders(),
       })
 
@@ -702,7 +712,7 @@ const updateUserRole = async (
     
     try {
       setIsFetchingUsers(true)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.vercel.app'}/api/users/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.onrender.com'}/api/users/`, {
         headers: getAuthHeaders(),
       })
 
