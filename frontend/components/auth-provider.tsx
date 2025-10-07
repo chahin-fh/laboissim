@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
     if (token) {
       // Try to fetch user profile from backend
-      fetch("http://localhost:8000/api/user/", {
+      fetch("https://laboissim.vercel.app/api/user/", {
         headers: {
           "Authorization": `Bearer ${token}`,
         },
@@ -213,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch("http://localhost:8000/api/token/email/", {
+      const response = await fetch("https://laboissim.vercel.app/api/token/email/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -226,7 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("token", data.access); // Store JWT token
 
         // Fetch user data from backend
-        const userRes = await fetch("http://localhost:8000/api/user/", {
+        const userRes = await fetch("https://laboissim.vercel.app/api/user/", {
           headers: {
             "Authorization": `Bearer ${data.access}`,
           },
@@ -284,7 +284,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const banUser = async (userId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/admin/ban-user/${userId}/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.vercel.app'}/api/admin/ban-user/${userId}/`, {
         method: 'POST',
         headers: getAuthHeaders(),
       })
@@ -316,7 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const unbanUser = async (userId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/admin/unban-user/${userId}/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.vercel.app'}/api/admin/unban-user/${userId}/`, {
         method: 'POST',
         headers: getAuthHeaders(),
       })
@@ -343,7 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteUser = async (userId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/admin/delete-user/${userId}/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.vercel.app'}/api/admin/delete-user/${userId}/`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       })
@@ -378,7 +378,7 @@ const updateUserRole = async (
   newRole: "member" | "admin" | "chef_d_equipe"
 ) => {
   try {
-    const response = await fetch(`http://localhost:8000/api/admin/update-user-role/${userId}/`, {
+    const response = await fetch(`https://laboissim.vercel.app/api/admin/update-user-role/${userId}/`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({ role: newRole }),
@@ -408,7 +408,7 @@ const updateUserRole = async (
 
   const addMessage = async (messageData: Omit<ContactMessage, "id" | "createdAt" | "status">) => {
     try {
-      const response = await fetch("http://localhost:8000/api/messages/contact/", {
+      const response = await fetch("https://laboissim.vercel.app/api/messages/contact/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -430,7 +430,7 @@ const updateUserRole = async (
 
   const updateMessageStatus = async (messageId: string, status: ContactMessage["status"]) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/messages/contact/${messageId}/`, {
+      const response = await fetch(`https://laboissim.vercel.app/api/messages/contact/${messageId}/`, {
         method: "PATCH",
         headers: getAuthHeaders(),
         body: JSON.stringify({ status }),
@@ -450,7 +450,7 @@ const updateUserRole = async (
 
   const addAccountRequest = async (requestData: Omit<AccountRequest, "id" | "createdAt" | "status">) => {
     try {
-      const response = await fetch("http://localhost:8000/api/messages/account-requests/", {
+      const response = await fetch("https://laboissim.vercel.app/api/messages/account-requests/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -472,7 +472,7 @@ const updateUserRole = async (
 
   const updateAccountRequest = async (requestId: string, status: AccountRequest["status"]) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/messages/account-requests/${requestId}/`, {
+      const response = await fetch(`https://laboissim.vercel.app/api/messages/account-requests/${requestId}/`, {
         method: "PATCH",
         headers: getAuthHeaders(),
         body: JSON.stringify({ status }),
@@ -510,7 +510,7 @@ const updateUserRole = async (
     if (!user) return
 
     try {
-      const response = await fetch("http://localhost:8000/api/messages/internal/", {
+      const response = await fetch("https://laboissim.vercel.app/api/messages/internal/", {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -535,7 +535,7 @@ const updateUserRole = async (
 
   const markMessageAsRead = async (messageId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/messages/internal/${messageId}/mark_as_read/`, {
+      const response = await fetch(`https://laboissim.vercel.app/api/messages/internal/${messageId}/mark_as_read/`, {
         method: "POST",
         headers: getAuthHeaders(),
       })
@@ -556,7 +556,7 @@ const updateUserRole = async (
     if (!user) return []
     
     try {
-      const response = await fetch(`http://localhost:8000/api/messages/internal/conversation/?user_id=${userId}`, {
+      const response = await fetch(`https://laboissim.vercel.app/api/messages/internal/conversation/?user_id=${userId}`, {
         headers: getAuthHeaders(),
       })
 
@@ -576,7 +576,7 @@ const updateUserRole = async (
     if (!user) return []
 
     try {
-      const response = await fetch("http://localhost:8000/api/messages/internal/conversations/", {
+      const response = await fetch("https://laboissim.vercel.app/api/messages/internal/conversations/", {
         headers: getAuthHeaders(),
       })
 
@@ -597,8 +597,8 @@ const updateUserRole = async (
     
     try {
       const url = userId 
-        ? `http://localhost:8000/api/messages/internal/unread_count/?user_id=${userId}`
-        : "http://localhost:8000/api/messages/internal/unread_count/"
+        ? `https://laboissim.vercel.app/api/messages/internal/unread_count/?user_id=${userId}`
+        : "https://laboissim.vercel.app/api/messages/internal/unread_count/"
       
       const response = await fetch(url, {
         headers: getAuthHeaders(),
@@ -621,7 +621,7 @@ const updateUserRole = async (
     if (!user || !isTokenValid()) return
     
     try {
-      const response = await fetch("http://localhost:8000/api/messages/contact/", {
+      const response = await fetch("https://laboissim.vercel.app/api/messages/contact/", {
         headers: getAuthHeaders(),
       })
 
@@ -648,7 +648,7 @@ const updateUserRole = async (
     
     try {
       console.log('Fetching account requests...')
-      const response = await fetch("http://localhost:8000/api/messages/account-requests/", {
+      const response = await fetch("https://laboissim.vercel.app/api/messages/account-requests/", {
         headers: getAuthHeaders(),
       })
 
@@ -675,7 +675,7 @@ const updateUserRole = async (
     if (!user || !isTokenValid()) return
     
     try {
-      const response = await fetch("http://localhost:8000/api/messages/internal/", {
+      const response = await fetch("https://laboissim.vercel.app/api/messages/internal/", {
         headers: getAuthHeaders(),
       })
 
@@ -702,7 +702,7 @@ const updateUserRole = async (
     
     try {
       setIsFetchingUsers(true)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/users/`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.vercel.app'}/api/users/`, {
         headers: getAuthHeaders(),
       })
 

@@ -101,7 +101,7 @@ export async function createPublication(data: CreatePublicationData): Promise<Pu
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch('http://localhost:8000/api/publications/', {
+  const response = await fetch('https://laboissim.vercel.app/api/publications/', {
     method: 'POST',
     headers,
     body: JSON.stringify(data),
@@ -125,7 +125,7 @@ export async function updatePublication(id: string, data: CreatePublicationData)
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`http://localhost:8000/api/publications/${id}/`, {
+  const response = await fetch(`https://laboissim.vercel.app/api/publications/${id}/`, {
     method: 'PUT',
     headers,
     body: JSON.stringify(data),
@@ -144,7 +144,7 @@ export async function getPublications(): Promise<PublicationResponse[]> {
   try {
     console.log('Attempting to fetch publications from /api/publications/');
     
-    const response = await fetch('http://localhost:8000/api/publications/', {
+    const response = await fetch('https://laboissim.vercel.app/api/publications/', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -175,7 +175,7 @@ export async function deletePublication(publicationId: string): Promise<void> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-      const response = await fetch(`http://localhost:8000/api/publications/${publicationId}/`, {
+      const response = await fetch(`https://laboissim.vercel.app/api/publications/${publicationId}/`, {
       method: 'DELETE',
       headers,
     });
@@ -194,7 +194,7 @@ export async function searchMembers(query: string): Promise<MemberSearchResult[]
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`http://localhost:8000/api/publications/search_members/?q=${encodeURIComponent(query)}`, {
+  const response = await fetch(`https://laboissim.vercel.app/api/publications/search_members/?q=${encodeURIComponent(query)}`, {
     method: 'GET',
     headers,
   });
@@ -215,7 +215,7 @@ export async function searchExternals(query: string): Promise<ExternalSearchResu
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`http://localhost:8000/api/publications/search_externals/?q=${encodeURIComponent(query)}`, {
+  const response = await fetch(`https://laboissim.vercel.app/api/publications/search_externals/?q=${encodeURIComponent(query)}`, {
     method: 'GET',
     headers,
   });

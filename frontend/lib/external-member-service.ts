@@ -36,7 +36,7 @@ export async function createExternalMember(data: CreateExternalMemberData): Prom
     formData.append('profile_pic', data.profile_pic);
   }
 
-  const response = await fetch('http://localhost:8000/api/external-members/', {
+  const response = await fetch('https://laboissim.vercel.app/api/external-members/', {
     method: 'POST',
     headers: getAuthHeaders(), // Don't set Content-Type for FormData
     body: formData,
@@ -52,7 +52,7 @@ export async function createExternalMember(data: CreateExternalMemberData): Prom
 }
 
 export async function getExternalMembers(): Promise<ExternalMember[]> {
-  const response = await fetch('http://localhost:8000/api/external-members/', {
+  const response = await fetch('https://laboissim.vercel.app/api/external-members/', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
