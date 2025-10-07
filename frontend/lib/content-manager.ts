@@ -315,7 +315,7 @@ export function useContentManager() {
       setLoading(true)
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem("token") : null;
-        const res = await fetch("https://laboissim.vercel.app/api/site-content/", {
+        const res = await fetch("https://laboissim.onrender.com/api/site-content/", {
           headers: token ? { "Authorization": `Bearer ${token}` } : {},
         })
         if (res.ok) {
@@ -333,7 +333,7 @@ export function useContentManager() {
             logo: {
               text: data.logo_text || prev.logo.text,
               subtitle: data.logo_subtitle || prev.logo.subtitle,
-              imageUrl: data.logo_image ? `https://laboissim.vercel.app${data.logo_image}` : prev.logo.imageUrl,
+              imageUrl: data.logo_image ? `https://laboissim.onrender.com${data.logo_image}` : prev.logo.imageUrl,
             },
             about: {
               ...prev.about,
@@ -575,7 +575,7 @@ export function useContentManager() {
         body = JSON.stringify(payload)
         console.log('Using JSON payload:', payload)
       }
-      await fetch("https://laboissim.vercel.app/api/site-content/", {
+      await fetch("https://laboissim.onrender.com/api/site-content/", {
         method: "PUT",
         headers,
         body,

@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.vercel.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://laboissim.onrender.com';
 
 export interface Project {
   id: string;
